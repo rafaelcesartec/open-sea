@@ -1,3 +1,5 @@
 node_modules
 theme/.claude-plugin/types/
 .DS_Store
+dist
+.wrangler

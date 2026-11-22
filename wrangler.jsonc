@@ -1,0 +1,8 @@
+// The WebGPU page (dist/index.html, built by `npm run build:gpu`) served by Cloudflare as static assets, at its own
+// domain: Cloudflare makes the DNS record and the certificate for it. `npm run deploy:gpu` builds and publishes.
+{
+  "name": "open-sea",
+  "compatibility_date": "2026-11-01",
+  "assets": { "directory": "./dist" },
+  "routes": [{ "pattern": "opensea.rafaelcesar.com", "custom_domain": true }]
+}
