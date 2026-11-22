@@ -1,10 +1,10 @@
 // A school of bigeye trevally from above: each fish a firm spindle with a blunt head, small sickle pectorals and a
 // deeply forked crescent tail; dark blue-grey along the back, its silver flanks showing as a pale rim. A fish turning
 // hard rolls and flashes silver, so a school wheeling round shimmers as real ones do. The tail beats side to side.
-// In the mosaic a fish is narrower than a tile, so each lights a streak of tiles along its body: the school reads as
-// many short parallel strokes, all one way.
+// In the mosaic a fish is narrower than a tile, so each lights a short streak of about two and a half tiles through
+// its middle: the school reads as many short parallel dashes, all one way, not as worms.
 
-import { KINDS, type Animal } from '../sim.ts'
+import { KINDS, fishDepth, sizeOf, type Animal } from '../sim.ts'
 import type { Ctx } from './common.ts'
 
 const BACK = '#46545d'
@@ -14,8 +14,12 @@ const DISTANT = '#7f939d'
 
 export function drawSchool(ctx: Ctx, a: Animal, tile: number): void {
   const k = KINDS[a.kind]!
-  const L = k.length
   for (const f of a.fish) {
+    // A fish off the school's depth is drawn to its own size there, and a little fainter the deeper it is.
+    const fd = fishDepth(a, f)
+    const z = sizeOf(fd) / sizeOf(a.depth)
+    const L = k.length * z
+    ctx.globalAlpha = 1 - 0.8 * Math.max(0, fd - a.depth)
     const speed = Math.hypot(f.vx, f.vy) || 1
     const fx = f.vx / speed
     const fy = f.vy / speed
@@ -27,9 +31,10 @@ export function drawSchool(ctx: Ctx, a: Animal, tile: number): void {
       ctx.strokeStyle = flash ? FLASH : DISTANT
       ctx.lineWidth = tile
       ctx.lineCap = 'butt'
+      // Two and a half tiles, centred on the fish: a long streak reads as a segmented worm.
       ctx.beginPath()
-      ctx.moveTo(...p(L * 0.45, 0))
-      ctx.lineTo(...p(-L * 0.35, 0))
+      ctx.moveTo(...p(tile * 1.25 * z, 0))
+      ctx.lineTo(...p(-tile * 1.25 * z, 0))
       ctx.stroke()
       continue
     }
@@ -71,4 +76,5 @@ export function drawSchool(ctx: Ctx, a: Animal, tile: number): void {
       ctx.fill()
     }
   }
+  ctx.globalAlpha = 1
 }

@@ -5,17 +5,17 @@ function stepSchool(s, animals, dt, random) {
   const fish = s.fish;
   if (fish.length === 0) return;
   const bl = k.length;
-  const near2 = bl * 1.1;
-  const along = bl * 3.5;
-  const around = bl * 5;
+  const near2 = bl * 0.8;
+  const along = bl * 2.5;
+  const around = bl * 3;
   const { x: cx, y: cy } = middleOf(fish);
   const threats = [];
   for (const o of animals) {
-    if (o === s || KINDS[o.kind].plan === "school" || apart(s, o)) continue;
+    if (o === s || KINDS[o.kind].plan === "school") continue;
     const ko = KINDS[o.kind];
     if (Math.hypot(o.x - cx, o.y - cy) > ko.length * 1.3 + 500) continue;
-    for (const c of discsOf(o)) threats.push({ x: c.x, y: c.y, r: c.r + bl * 1.5 });
-    threats.push({ x: o.x + Math.cos(o.heading) * o.speed * 0.5, y: o.y + Math.sin(o.heading) * o.speed * 0.5, r: ko.reach * 0.7 + bl * 2 });
+    for (const c of discsOf(o)) threats.push({ x: c.x, y: c.y, r: c.r + bl * 1.5, depth: o.depth });
+    threats.push({ x: o.x + Math.cos(o.heading) * o.speed * 0.5, y: o.y + Math.sin(o.heading) * o.speed * 0.5, r: ko.reach * 0.7 + bl * 2, depth: o.depth });
   }
   if (Math.hypot(s.x - cx, s.y - cy) > bl * 5) {
     s.pace = Math.min(s.pace, 0.6);
@@ -68,11 +68,13 @@ function stepSchool(s, animals, dt, random) {
     const lx = s.x - f.x;
     const ly = s.y - f.y;
     const l = Math.hypot(lx, ly) || 1;
-    const stray = Math.min(1.6, Math.max(0, (l - bl * 3) / (bl * 5)));
+    const stray = Math.min(1.6, Math.max(0, (l - bl * 1.2) / (bl * 3)));
     wx += Math.cos(s.heading) * 0.45 + lx / l * stray;
     wy += Math.sin(s.heading) * 0.45 + ly / l * stray;
     let fear = 0;
+    const fd = fishDepth(s, f);
     for (const c of threats) {
+      if (Math.abs(fd - c.depth) >= APART) continue;
       const dx = f.x - c.x;
       const dy = f.y - c.y;
       const d = Math.hypot(dx, dy) || 1;
@@ -91,7 +93,7 @@ function stepSchool(s, animals, dt, random) {
     const h = heading + turn;
     const vx = Math.cos(h) * speed;
     const vy = Math.sin(h) * speed;
-    return { x: f.x + vx * dt, y: f.y + vy * dt, vx, vy, swum: f.swum + speed * dt, turn: turn / dt };
+    return { x: f.x + vx * dt, y: f.y + vy * dt, vx, vy, swum: f.swum + speed * dt, turn: turn / dt, deep: f.deep };
   });
   s.fish = next;
 }
@@ -111,7 +113,7 @@ var KINDS = [
   { ...shark, name: "blacktip", length: 1.6 * M, girth: 10, widest: 0.32, snout: 0.6, fin: 23, reach: 36, speed: 100, beat: 0.9, turn: 0.6, sprint: 2.3, whim: 1.3, prey: [], levels: [1, 2] },
   // Blue whale, 24 m: long and slender, a broad flat U-shaped head, a small fin far back, flukes a quarter its
   // length across. It barely turns; it passes through.
-  { ...cetacean, name: "blue", length: 24 * M, girth: 0.07 * 24 * M, profile: [[0, 0.45], [0.05, 0.78], [0.15, 0.93], [0.35, 1], [0.6, 0.82], [0.8, 0.42], [0.9, 0.18]], reach: 330, speed: 128, beat: 6, turn: 0.8, sprint: 1.4, whim: 0.2, stay: [4, 14], prey: [], levels: [1, 2] },
+  { ...cetacean, name: "blue", length: 24 * M, girth: 0.06 * 24 * M, profile: [[0, 0.45], [0.05, 0.78], [0.15, 0.93], [0.35, 1], [0.6, 0.82], [0.8, 0.42], [0.9, 0.18]], reach: 330, speed: 128, beat: 6, turn: 0.8, sprint: 1.4, whim: 0.2, stay: [4, 14], prey: [], levels: [1, 2] },
   // Orca, 7 m: robust, a blunt rounded head, broad paddle flippers.
   { ...cetacean, name: "orca", length: 7 * M, girth: 0.09 * 7 * M, profile: [[0, 0.4], [0.06, 0.8], [0.25, 1], [0.5, 0.9], [0.75, 0.45], [0.9, 0.17]], reach: 135, speed: 120, beat: 1.6, turn: 0.45, sprint: 2.5, whim: 1.2, prey: ["white", "tiger", "hammer", "blacktip", "dolphin", "manta"], levels: [1, 2] },
   // Bottlenose dolphin, 2.7 m: a short beak before the melon, small pointed flippers. Quick and restless.
@@ -126,7 +128,11 @@ var KINDS = [
   { name: "squid", plan: "squid", length: 8 * M, girth: 22, widest: 0, snout: 0, fin: 0, profile: [[0, 0.35], [0.03, 1.1], [0.07, 0.8], [0.15, 1], [0.25, 0.9], [0.3, 1.05], [0.36, 0.85], [0.45, 1], [0.52, 0.5], [0.6, 0.18], [1, 0.12]], reach: 42, speed: 40, beat: 2.5, turn: 0.3, trunk: 1, sway: 0.03, surge: 0.6, sprint: 2.5, whim: 0.5, stay: [25, 60], prey: [], levels: [2, 3] },
   // A school of bigeye trevally, 60 cm each, the silver school of every drone shot from above: they keep together and
   // go one way; it parts round anything big and closes again.
-  { name: "jacks", plan: "school", length: 0.6 * M, girth: 4, widest: 0, snout: 0, fin: 0, reach: 260, speed: 55, beat: 0.5, turn: 3.5, trunk: 1, sway: 0.1, surge: 0, sprint: 3, whim: 1, stay: [30, 70], prey: [], levels: [1, 2] }
+  { name: "jacks", plan: "school", length: 0.6 * M, girth: 4, widest: 0, snout: 0, fin: 0, reach: 260, speed: 55, beat: 0.5, turn: 3.5, trunk: 1, sway: 0.1, surge: 0, sprint: 3, whim: 1, stay: [30, 70], prey: [], levels: [1, 2] },
+  // Whale shark, 12 m: the biggest fish, broad and flat across the head, a blunt wide mouth, very slow.
+  { ...shark, name: "whaleshark", length: 12 * M, girth: 125, widest: 0.3, snout: 0.3, fin: 170, reach: 260, speed: 60, beat: 3, turn: 0.4, sprint: 1.6, whim: 0.3, stay: [40, 90], prey: [], levels: [1, 2] },
+  // Humpback whale, 15 m: a stout whale with very broad flippers, slower than the blue.
+  { ...cetacean, name: "humpback", length: 15 * M, girth: 0.1 * 15 * M, reach: 0.2 * 15 * M + 10, speed: 110, beat: 4, turn: 0.7, sprint: 1.6, whim: 0.4, stay: [15, 50], prey: [], levels: [1, 2] }
 ];
 var STEP = 10;
 var clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -223,8 +229,11 @@ function createSea(w, h) {
   return { w, h, animals: [], next: 0, gone: -1, atOnce: 4, allowed: new Set(KINDS.map((_, i) => i)) };
 }
 var depthOf = (level) => (level - 1) / 2;
+var sizeOf = (depth) => 1 - 0.2 * depth;
 var deepIn = (k, random) => depthOf(k.levels[Math.floor(random() * k.levels.length)]);
-var apart = (a, b) => Math.abs(a.depth - b.depth) >= 0.25;
+var APART = 0.25;
+var apart = (a, b) => Math.abs(a.depth - b.depth) >= APART;
+var fishDepth = (a, f) => Math.min(1, Math.max(0, a.depth + f.deep));
 function make(kind, x, y, heading, to, random) {
   const k = KINDS[kind];
   const trail = [];
@@ -234,7 +243,7 @@ function make(kind, x, y, heading, to, random) {
     for (let i = 0; i < 160; i += 1) {
       const back = Math.sqrt(random()) * 380;
       const side = (random() - 0.5) * 320;
-      a.fish.push({ x: x - Math.cos(heading) * back - Math.sin(heading) * side, y: y - Math.sin(heading) * back + Math.cos(heading) * side, vx: Math.cos(heading) * k.speed, vy: Math.sin(heading) * k.speed, swum: random() * 50, turn: 0 });
+      a.fish.push({ x: x - Math.cos(heading) * back - Math.sin(heading) * side, y: y - Math.sin(heading) * back + Math.cos(heading) * side, vx: Math.cos(heading) * k.speed, vy: Math.sin(heading) * k.speed, swum: random() * 50, turn: 0, deep: (random() * 2 - 1) * 0.3 });
     }
   }
   return a;
@@ -689,6 +698,12 @@ var CAPE = smooth([
   [0.85, 0.9],
   [0.95, 1.05]
 ]);
+function paintHumpback(ctx, b) {
+  ctx.fillStyle = "#56626a";
+  ctx.fill(b.strip(0.02, 0.97, -0.9, 0.9, 0.08));
+  ctx.fillStyle = "#44505a";
+  ctx.fill(b.strip(0.02, 0.97, -0.55, 0.55, 0.08));
+}
 function paintDolphin(ctx, b) {
   ctx.fillStyle = "#858d94";
   ctx.fill(b.strip(0.01, 0.98, -0.93, 0.93));
@@ -702,34 +717,23 @@ function paintDolphin(ctx, b) {
   ctx.fill(b.blade(0.44, 0.555, 3.6));
 }
 var LOOKS = {
-  // Blue whale: a broad U of a head, widest a third back, a long tapering tail stock, flippers swept back, wide
-  // triangular flukes with a shallow notch.
+  // Blue whale, as seen from above in aerial photographs: a sleek body, the head tapering to a pointed snout, widest
+  // about halfway, a long slender tail stock, flippers swept back, wide triangular flukes with a shallow notch.
   blue: {
     width: [
-      [0, 0],
-      [5e-4, 0.1],
-      [15e-4, 0.165],
-      [3e-3, 0.23],
-      [8e-3, 0.37],
-      [0.016, 0.5],
-      [0.03, 0.62],
-      [0.05, 0.73],
-      [0.075, 0.82],
-      [0.105, 0.9],
-      [0.15, 0.96],
-      [0.21, 0.995],
-      [0.29, 1],
-      [0.38, 0.99],
-      [0.47, 0.94],
-      [0.56, 0.85],
-      [0.65, 0.7],
-      [0.72, 0.55],
-      [0.78, 0.42],
-      [0.84, 0.3],
-      [0.89, 0.215],
-      [0.925, 0.17],
-      [0.94, 0.12],
-      [0.955, 0.04],
+      [0, 0.2],
+      [0.02, 0.45],
+      [0.05, 0.62],
+      [0.1, 0.78],
+      [0.18, 0.9],
+      [0.3, 0.99],
+      [0.42, 1],
+      [0.55, 0.97],
+      [0.66, 0.88],
+      [0.76, 0.7],
+      [0.84, 0.5],
+      [0.9, 0.3],
+      [0.94, 0.14],
       [0.96, 0]
     ],
     tail: 0.96,
@@ -740,10 +744,10 @@ var LOOKS = {
     line: 3,
     flipper: {
       u: 0.235,
-      theta: 0.7,
-      len: 0.12,
-      // Long and slender, but ending in a narrow rounded tip, not a point: both edges meet it running the same way.
-      shape: [[-0.05, 0.14], [0.3, 0.165], [0.97, 0.085], [1, 0], [1.03, -0.085], [0.32, -0.15], [-0.05, -0.12]]
+      theta: 0.6,
+      len: 0.14,
+      // A sickle: narrow, the leading edge nearly straight and the trailing edge curving back to a fine point.
+      shape: [[-0.05, 0.06], [0.4, 0.18], [0.9, 0.08], [1.02, 0], [0.9, -0.07], [0.4, -0.14], [-0.05, -0.06]]
     },
     root: 0.925,
     // Broad and triangular, the leading edge swept back, the tips rounded off, a shallow notch in the trailing edge.
@@ -838,6 +842,44 @@ var LOOKS = {
     pitch: 0.55,
     pivot: 0.6,
     paint: paintDolphin
+  },
+  // Humpback whale: a stout body, the head broad and blunt, the widest just behind it; very broad paddle-shaped
+  // flippers, dark, rounded at the tip; wide flukes with a ragged trailing edge.
+  humpback: {
+    width: [
+      [0, 0.08],
+      [0.012, 0.42],
+      [0.035, 0.65],
+      [0.08, 0.84],
+      [0.14, 0.93],
+      [0.2, 1],
+      [0.35, 0.98],
+      [0.5, 0.9],
+      [0.62, 0.74],
+      [0.72, 0.56],
+      [0.8, 0.4],
+      [0.86, 0.28],
+      [0.91, 0.18],
+      [0.95, 0.08],
+      [0.975, 0]
+    ],
+    tail: 0.975,
+    skin: "#3e4a52",
+    fin: "#2b3138",
+    edge: "#2a3238",
+    line: 2,
+    flipper: {
+      u: 0.2,
+      theta: 0.45,
+      len: 0.2,
+      shape: [[-0.05, 0.05], [0.45, 0.36], [0.95, 0.14], [1, 0], [0.95, -0.12], [0.45, -0.26], [-0.05, -0.05]]
+    },
+    root: 0.94,
+    flukes: [[0.04, 0], [0.06, 0.03], [0.085, 0.14], [0.07, 0.16], [0.055, 0.165], [-0.01, 0.07], [-0.04, 0.015]],
+    pitch: 0.45,
+    pivot: 0.66,
+    bumps: true,
+    paint: paintHumpback
   }
 };
 function drawCetacean(ctx, a, tile) {
@@ -922,18 +964,20 @@ function drawCetacean(ctx, a, tile) {
   flukes.closePath();
   const turn = bend(pose(L2 * 0.4), pose(L2 * 0.05));
   const fl = look.flipper;
-  const flipper = (s, scale) => {
+  const flipperFrame = (s) => {
     const p = pose(L2 * fl.u);
     const th = fl.theta + s * Math.max(-0.3, Math.min(0.3, turn * 0.3));
-    const [ca, sa] = [Math.cos(th), Math.sin(th)];
-    const [x, y] = at(p, 0, s * p.w * 0.85);
-    const base = { ...p, x, y };
+    const [x, y] = at(p, 0, s * p.w * 0.97);
+    return { base: { ...p, x, y }, ca: Math.cos(th), sa: Math.sin(th) };
+  };
+  const flipperPoint = (s, fs, ft, scale = [1, 1]) => {
+    const { base, ca, sa } = flipperFrame(s);
+    const [s0, t0] = [fs * scale[0] * fl.len * L2, ft * scale[1] * fl.len * L2];
+    return at(base, -ca * s0 + sa * t0, s * (sa * s0 + ca * t0));
+  };
+  const flipper = (s, scale) => {
     const path = new Path2D();
-    const pts = fl.shape.map(([fs, ft]) => {
-      const [s0, t0] = [fs * scale[0] * fl.len * L2, ft * scale[1] * fl.len * L2];
-      return at(base, -ca * s0 + sa * t0, s * (sa * s0 + ca * t0));
-    });
-    bez(path, pts);
+    bez(path, fl.shape.map(([fs, ft]) => flipperPoint(s, fs, ft, scale)));
     return path;
   };
   const flippers = [flipper(-1, [1, 1]), flipper(1, [1, 1])];
@@ -942,14 +986,42 @@ function drawCetacean(ctx, a, tile) {
   ctx.lineWidth = look.line;
   ctx.strokeStyle = look.edge;
   for (const part of [flukes, ...flippers, body]) ctx.stroke(part);
-  ctx.fillStyle = look.rim ?? look.fin;
-  for (const f of flippers) ctx.fill(f);
-  ctx.fillStyle = look.fin;
-  ctx.fill(flukes);
-  if (look.rim !== void 0) for (const s of [-1, 1]) ctx.fill(flipper(s, [0.93, 0.62]));
   ctx.fillStyle = look.skin;
   ctx.fill(body);
   look.paint(ctx, { L: L2, body, flukes, pose, strip, patch, blade, fluke });
+  for (const s of [-1, 1]) {
+    const [rx, ry] = flipperPoint(s, 0, 0);
+    const [tx, ty] = flipperPoint(s, 0.5, 0);
+    const shade = ctx.createLinearGradient(rx, ry, tx, ty);
+    shade.addColorStop(0, look.skin);
+    shade.addColorStop(0.45, look.rim ?? look.fin);
+    ctx.fillStyle = shade;
+    ctx.fill(flippers[s === -1 ? 0 : 1]);
+  }
+  if (look.bumps) {
+    const [p0, c12, c22, p1] = fl.shape;
+    const edge2 = (t) => {
+      const u = 1 - t;
+      const at2 = (i) => u * u * u * p0[i] + 3 * u * u * t * c12[i] + 3 * u * t * t * c22[i] + t * t * t * p1[i];
+      return [at2(0), at2(1)];
+    };
+    ctx.fillStyle = "#7c8890";
+    for (const s of [-1, 1]) {
+      ctx.save();
+      ctx.clip(flipper(s, [1, 1]));
+      for (const t of [0.12, 0.26, 0.4, 0.54, 0.68, 0.82]) {
+        const [fs, ft] = edge2(t);
+        const [x, y] = flipperPoint(s, fs, ft - 0.03);
+        ctx.beginPath();
+        ctx.arc(x, y, fl.len * L2 * 0.02, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+  ctx.fillStyle = look.fin;
+  ctx.fill(flukes);
+  if (look.rim !== void 0) for (const s of [-1, 1]) ctx.fill(flipper(s, [0.93, 0.62]));
   ctx.restore();
 }
 
@@ -1149,8 +1221,11 @@ var FLASH = "#dde4e7";
 var DISTANT = "#7f939d";
 function drawSchool(ctx, a, tile) {
   const k = KINDS[a.kind];
-  const L2 = k.length;
   for (const f of a.fish) {
+    const fd = fishDepth(a, f);
+    const z = sizeOf(fd) / sizeOf(a.depth);
+    const L2 = k.length * z;
+    ctx.globalAlpha = 1 - 0.8 * Math.max(0, fd - a.depth);
     const speed = Math.hypot(f.vx, f.vy) || 1;
     const fx = f.vx / speed;
     const fy = f.vy / speed;
@@ -1161,8 +1236,8 @@ function drawSchool(ctx, a, tile) {
       ctx.lineWidth = tile;
       ctx.lineCap = "butt";
       ctx.beginPath();
-      ctx.moveTo(...p(L2 * 0.45, 0));
-      ctx.lineTo(...p(-L2 * 0.35, 0));
+      ctx.moveTo(...p(tile * 1.25 * z, 0));
+      ctx.lineTo(...p(-tile * 1.25 * z, 0));
       ctx.stroke();
       continue;
     }
@@ -1200,6 +1275,7 @@ function drawSchool(ctx, a, tile) {
       ctx.fill();
     }
   }
+  ctx.globalAlpha = 1;
 }
 
 // src/draw/shark.ts
@@ -1211,7 +1287,9 @@ var LOOKS2 = {
   // Tiger: grey-green above with dark bars, fading with age.
   tiger: { fringe: "#4a524d", flank: "#7b8580", back: "#5d6660", bar: "#363d38" },
   // Blacktip: bronze grey above; black tips on the fins.
-  blacktip: { fringe: "#57544b", flank: "#8b877b", back: "#6e6a5f", tips: "#1a1b1d" }
+  blacktip: { fringe: "#57544b", flank: "#8b877b", back: "#6e6a5f", tips: "#1a1b1d" },
+  // Whale shark: dark blue-grey, its back and sides dotted with pale spots, paler below.
+  whaleshark: { fringe: "#2e3d48", flank: "#6b7d88", back: "#3d4e5a", spots: "#dfe7ea" }
 };
 function fins(ctx, look, f, reach2, root) {
   for (const side of [-1, 1]) {
@@ -1272,6 +1350,21 @@ function drawShark(ctx, s, tile) {
   outline(ctx, frames, 0.6);
   ctx.fillStyle = look.back;
   ctx.fill();
+  if (look.spots !== void 0 && tile === 0) {
+    ctx.fillStyle = look.spots;
+    ctx.beginPath();
+    for (let i = 0; i < frames.length; i += 1) {
+      const f = frames[i];
+      for (let j = 0; j < 5; j += 1) {
+        const r = Math.sin(i * 12.9898 + j * 78.233) * 43758.5453;
+        const u = r - Math.floor(r);
+        const [x, y] = at(f, 0, (j % 2 === 0 ? -1 : 1) * f.w * (0.15 + 0.7 * u));
+        ctx.moveTo(x + 1.6, y);
+        ctx.arc(x, y, 1.1 + u * 0.9, 0, Math.PI * 2);
+      }
+    }
+    ctx.fill();
+  }
   if (look.bar !== void 0) {
     ctx.strokeStyle = look.bar;
     ctx.lineWidth = 3;
@@ -1920,8 +2013,14 @@ var GLYPHS = "$%tSX8@:;#S%X8tS";
 var SHADES = [1, 0.886, 0.776, 0.659];
 var GLYPH_INK = 0.227;
 var GLYPH_LIFT = 0.72;
-var DEEP_DARK = "#171d24";
-var DEEP_LIGHT = "#c9d8de";
+var OCEAN_NIGHT = "#0a2034";
+var OCEAN_DAY = "#2f86ad";
+var DEEP_DARK = OCEAN_NIGHT;
+var DEEP_LIGHT = OCEAN_DAY;
+var MONO_NIGHT = "#191919";
+var MONO_DAY = "#dde6e9";
+var MONO_DEEP_DARK = "#171d24";
+var MONO_DEEP_LIGHT = "#c9d8de";
 var TINT = 0.3;
 var CLEAR = 0.85;
 function rng(seed) {
@@ -1958,16 +2057,18 @@ var LABELS = {
   turtle: ["Turtle", "Green turtle", "#8a7a50"],
   manta: ["Manta", "Manta ray", "#33373c"],
   squid: ["Giant squid", "Giant squid", "#8a3a33"],
-  jacks: ["Jacks", "School of jacks", "#a3afb5"]
+  jacks: ["Jacks", "School of jacks", "#a3afb5"],
+  whaleshark: ["Whale shark", "Whale shark", "#5f7a86"],
+  humpback: ["Humpback", "Humpback whale", "#4a5860"]
 };
 var GROUPS = [
-  ["Sharks", ["white", "hammer", "tiger", "blacktip"]],
-  ["Mammals", ["blue", "orca", "dolphin"]],
+  ["Sharks", ["white", "hammer", "tiger", "blacktip", "whaleshark"]],
+  ["Mammals", ["blue", "orca", "dolphin", "humpback"]],
   ["Others", ["turtle", "manta", "squid", "jacks"]]
 ];
 var ORDER = GROUPS.flatMap(([, names]) => names);
 var metres = (n) => `${n.toLocaleString("en", { maximumFractionDigits: 1 })} m`;
-var sizeOf = (name) => {
+var sizeOf2 = (name) => {
   const k = KINDS.find((x) => x.name === name);
   return k.plan === "school" ? `${metres(k.length / 80)} each` : metres(k.length / 80);
 };
@@ -1990,6 +2091,7 @@ var CSS = `
 * { box-sizing: border-box; }
 .wrap {
   --glass: rgba(26, 29, 33, 0.22);
+  --foot: rgba(18, 22, 26, 0.86);
   --edge: rgba(255, 255, 255, 0.12);
   --shine: rgba(255, 255, 255, 0.08);
   --text: #eef1f2;
@@ -2017,6 +2119,7 @@ var CSS = `
 }
 .wrap.light {
   --glass: rgba(255, 255, 255, 0.3);
+  --foot: rgba(246, 249, 250, 0.9);
   --edge: rgba(255, 255, 255, 0.75);
   --shine: rgba(255, 255, 255, 0.5);
   --text: #1a2024;
@@ -2139,6 +2242,11 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
 .card:hover { background: var(--chip-hover); }
 .card[aria-pressed="true"] { border-color: var(--accent); background: var(--chip-on); }
 .card .name { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 550; }
+/* Kept at the panel's foot as it scrolls: always in reach. */
+.exporting { position: sticky; bottom: 0; padding: 10px 18px 14px; border-top: 1px solid var(--track); background: var(--foot); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.export { width: 100%; padding: 10px; border-radius: 12px; background: var(--accent); color: var(--accent-ink); font-weight: 650; text-shadow: none; }
+.export:disabled { opacity: 0.6; cursor: default; }
+.note { margin-top: 8px; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; user-select: text; }
 .card .size { grid-column: 2; color: var(--muted); font-size: 11.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 
 footer { padding: 10px 18px 14px; border-top: 1px solid var(--track); color: var(--faint); font-size: 11.5px; display: flex; flex-wrap: wrap; gap: 4px 10px; }
@@ -2148,7 +2256,7 @@ kbd { font: 600 10.5px ui-monospace, SFMono-Regular, Menlo, monospace; padding: 
 @media (hover: none) { footer { display: none; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 `;
-function mountPanel(host, settings, change, inView) {
+function mountPanel(host, settings, change, inView, exportFile) {
   const root = document.createElement("div");
   host.appendChild(root);
   const shadow = root.attachShadow({ mode: "open" });
@@ -2188,13 +2296,14 @@ function mountPanel(host, settings, change, inView) {
           </div>
         </div>
         <div class="block pair"><span>Depth</span>${seg("level", "Depth", [["1", "Shallow"], ["2", "Mid"], ["3", "Deep"]])}</div>
-        <div class="cards block">${ORDER.map((n) => `<button type="button" class="card" data-watch="${n}" title="${LABELS[n][1]}">${dot(n)}<span class="name">${LABELS[n][0]}</span><span class="size">${sizeOf(n)}</span></button>`).join("")}</div>
+        <div class="cards block">${ORDER.map((n) => `<button type="button" class="card" data-watch="${n}" title="${LABELS[n][1]}">${dot(n)}<span class="name">${LABELS[n][0]}</span><span class="size">${sizeOf2(n)}</span></button>`).join("")}</div>
       </div>
 
       <div class="shared">
         <div class="section">View</div>
         <div class="block pair"><span>Style</span>${seg("style", "Style", [["mosaic", "Mosaic"], ["smooth", "Smooth"]])}</div>
         <div class="block pair"><span>Surface</span>${seg("surface", "Surface", [["on", "Lit"], ["off", "Off"]])}</div>
+        <div class="block pair"><span>Sea</span>${seg("colour", "Sea", [["on", "Blue"], ["off", "Mono"]])}</div>
         <div class="block">
           <div class="label"><label for="zoomOut">Distance</label><span class="hint" data-value="zoomOut"></span></div>
           <input id="zoomOut" type="range" min="0.6" max="3" step="0.1">
@@ -2208,6 +2317,7 @@ function mountPanel(host, settings, change, inView) {
         <div class="block pair" data-row="grid"><span>Grid</span>${seg("grid", "Grid", [["on", "On"], ["off", "Off"]])}</div>
         <div class="block pair"><span>Speed</span>${seg("speed", "Speed", [["0.5", "0.5\xD7"], ["1", "1\xD7"], ["2", "2\xD7"]])}</div>
       </div>
+      ${exportFile === void 0 ? "" : '<div class="exporting"><button type="button" class="export" data-export>Export</button><div class="note" data-export-note aria-live="polite"></div></div>'}
 
       <footer><span><kbd>Space</kbd> pause</span><span><kbd>H</kbd> hide</span><span><kbd>\u2190</kbd><kbd>\u2192</kbd> change animal</span><span><kbd>Esc</kbd> back to the sea</span></footer>
     </div>
@@ -2266,10 +2376,11 @@ function mountPanel(host, settings, change, inView) {
     for (const b of $$("[data-level]")) b.setAttribute("aria-pressed", String(Number(b.dataset.level) === settings.level));
     for (const b of $$("[data-surface]")) b.setAttribute("aria-pressed", String(b.dataset.surface === "on" === settings.surface));
     for (const b of $$("[data-grid]")) b.setAttribute("aria-pressed", String(b.dataset.grid === "on" === settings.grid));
+    for (const b of $$("[data-colour]")) b.setAttribute("aria-pressed", String(b.dataset.colour === "on" === settings.colour));
     for (const b of $$("[data-watch]")) b.setAttribute("aria-pressed", String(b.dataset.watch === settings.observe));
     if (settings.observe !== null) {
       $("[data-who]").textContent = LABELS[settings.observe][1];
-      $("[data-who-size]").textContent = sizeOf(settings.observe);
+      $("[data-who-size]").textContent = sizeOf2(settings.observe);
     }
     $("#zoomOut").value = String(settings.zoomOut);
     $('[data-value="zoomOut"]').textContent = `${settings.zoomOut.toFixed(1)}\xD7`;
@@ -2295,12 +2406,17 @@ function mountPanel(host, settings, change, inView) {
     else if (d.level !== void 0) set({ level: Number(d.level) });
     else if (d.surface !== void 0) set({ surface: d.surface === "on" });
     else if (d.grid !== void 0) set({ grid: d.grid === "on" });
+    else if (d.colour !== void 0) set({ colour: d.colour === "on" });
     else if (b.hasAttribute("data-pause")) set({ paused: !settings.paused });
     else if (b.hasAttribute("data-less")) set({ atOnce: Math.max(1, settings.atOnce - 1) });
     else if (b.hasAttribute("data-more")) set({ atOnce: Math.min(8, settings.atOnce + 1) });
     else if (b.hasAttribute("data-all")) set({ species: KINDS.map((k) => k.name) });
     else if (b.hasAttribute("data-none")) set({ species: [] });
-    else if (b.hasAttribute("data-collapse")) toggle(false);
+    else if (b.hasAttribute("data-export") && exportFile !== void 0) {
+      b.disabled = true;
+      const note = $("[data-export-note]");
+      exportFile().then((text) => note.textContent = text).catch((err) => note.textContent = `Could not export: ${String(err)}`).finally(() => b.disabled = false);
+    } else if (b.hasAttribute("data-collapse")) toggle(false);
     else if (b.hasAttribute("data-open")) toggle(true);
   });
   shadow.addEventListener("input", (e) => {
@@ -2335,7 +2451,7 @@ function mountPanel(host, settings, change, inView) {
 }
 
 // src/index.ts
-var LIGHT = "#dde6e9";
+var LIGHT = OCEAN_DAY;
 var FADE = 0.8;
 var BLUR = 7;
 var CAUSTIC_DAY = 0.26;
@@ -2388,6 +2504,7 @@ function mountOpenWater(host, options = {}) {
     observe: null,
     level: 1,
     surface: options.surface ?? true,
+    colour: options.colour ?? true,
     grid: options.grid ?? true
   };
   if (options.controls === true) {
@@ -2403,12 +2520,13 @@ function mountOpenWater(host, options = {}) {
     settings.atOnce = number(settings.atOnce, 1, 8, 4);
     settings.speed = [0.5, 1, 2].includes(settings.speed) ? settings.speed : 1;
     settings.surface = settings.surface !== false;
+    settings.colour = settings.colour !== false;
     settings.grid = settings.grid !== false;
     settings.level = [1, 2, 3].includes(settings.level) ? settings.level : 1;
     settings.species = Array.isArray(settings.species) ? KINDS.map((k) => k.name).filter((n) => settings.species.includes(n)) : KINDS.map((k) => k.name);
     settings.observe = null;
   }
-  const darkWater = options.background ?? "#191919";
+  const darkWater = options.background ?? OCEAN_NIGHT;
   const normalWidth = () => 1600 * Math.max(0.5, settings.zoomOut);
   const tiles = tileTable();
   const canvas = document.createElement("canvas");
@@ -2530,7 +2648,7 @@ function mountOpenWater(host, options = {}) {
     still.width = canvas.width;
     still.height = canvas.height;
     const sctx = still.getContext("2d");
-    sctx.fillStyle = light ? LIGHT : darkWater;
+    sctx.fillStyle = settings.colour ? light ? LIGHT : darkWater : light ? MONO_DAY : MONO_NIGHT;
     sctx.fillRect(0, 0, still.width, still.height);
     if (settings.style === "mosaic" && settings.grid) {
       sctx.strokeStyle = light ? "rgba(0,0,0,.05)" : "rgba(255,255,255,.028)";
@@ -2582,14 +2700,15 @@ function mountOpenWater(host, options = {}) {
     const [w, h] = [x1 - x0, y1 - y0];
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.clearRect(x0, y0, w, h);
-    c.setTransform(s, 0, 0, s, -left * s, -top * s);
+    const z = sizeOf(a.depth);
+    c.setTransform(s * z, 0, 0, s * z, s * (1 - z) * a.x - left * s, s * (1 - z) * a.y - top * s);
     c.imageSmoothingEnabled = tile === 0;
     c.lineJoin = "round";
     DRAW[k.plan](c, a, tile);
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.globalCompositeOperation = "source-atop";
     c.globalAlpha = a.depth * (tile > 0 ? TINT : FADE);
-    c.fillStyle = settings.theme === "light" ? DEEP_LIGHT : DEEP_DARK;
+    c.fillStyle = settings.colour ? settings.theme === "light" ? DEEP_LIGHT : DEEP_DARK : settings.theme === "light" ? MONO_DEEP_LIGHT : MONO_DEEP_DARK;
     c.fillRect(x0, y0, w, h);
     if (settings.surface) {
       const coarse = tile > 0 ? 2.5 : 1;
@@ -2719,7 +2838,7 @@ function mountOpenWater(host, options = {}) {
       }
     }
     if (patch.observe !== void 0) observe(patch.observe);
-    if (patch.theme !== void 0 || patch.style !== void 0 || patch.cell !== void 0 || patch.grid !== void 0) water();
+    if (patch.theme !== void 0 || patch.style !== void 0 || patch.cell !== void 0 || patch.grid !== void 0 || patch.colour !== void 0) water();
     if (patch.species !== void 0 || patch.atOnce !== void 0) {
       rules();
       const oldest = [...sea.animals].sort((a, b) => b.age - a.age);

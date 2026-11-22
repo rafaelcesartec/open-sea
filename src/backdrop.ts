@@ -10,8 +10,8 @@
 
 import { DRAW } from './draw/all.ts'
 import type { Ctx } from './draw/common.ts'
-import { createMosaic, waterStyle, type Shot } from './mosaic.ts'
-import { KINDS, createSea, stepSea, type Animal, type Kind, type Sea } from './sim.ts'
+import { OCEAN_DAY, OCEAN_NIGHT, createMosaic, waterStyle, type Shot } from './mosaic.ts'
+import { KINDS, createSea, sizeOf, stepSea, type Animal, type Kind, type Sea } from './sim.ts'
 import { SvgCtx, SvgPath, animate, type El } from './svg.ts'
 
 // The drawings make Path2D for shapes they reuse; outside a browser there is none.
@@ -53,7 +53,7 @@ const FRESH = 30
 /** The sea is kept for `saved` every so many samples: five seconds. */
 const KEEP = 50
 /** The shape of a saved sea: one saved by other code is not carried on. */
-const VERSION = 1
+const VERSION = 2
 /** How far the deepest fade into the water (the page's smooth style). */
 const FADE = 0.8
 
@@ -74,7 +74,7 @@ export type Backdrop = {
 export function createBackdrop(o: BackdropOptions = {}): Backdrop {
   const mosaic = (o.style ?? 'mosaic') === 'mosaic'
   const [width, height, seconds, limit] = [o.width ?? 2400, o.height ?? 1500, o.seconds ?? 1.5, o.limit ?? 131072]
-  const [water, lightWater] = [o.water ?? '#191919', o.lightWater ?? '#dde6e9']
+  const [water, lightWater] = [o.water ?? OCEAN_NIGHT, o.lightWater ?? OCEAN_DAY]
   const sea = createSea(width, height)
   sea.atOnce = o.atOnce ?? (mosaic ? 4 : 1)
   const names = o.species ?? (mosaic ? KINDS.map(k => k.name) : SMOOTH_FITS)
@@ -124,10 +124,20 @@ export function createBackdrop(o: BackdropOptions = {}): Backdrop {
   const tiles = createMosaic(width, height, o.cell ?? 10, o.texture ?? true)
   const shoot = (): Shot => {
     const shot = tiles.shot()
+    const ctx = tiles.ctx
     for (const a of inOrder()) {
-      DRAW[KINDS[a.kind]!.plan](tiles.ctx as unknown as Ctx, a, tiles.ctx.tile)
+      const z = sizeOf(a.depth)
+      const d = ctx.tile * (0.5 + a.depth)
+      // Its shadow first, moved down and to the right, the further down the body: over the water and over whatever
+      // swims deeper, which is drawn already. Its body then covers the shadow where they meet.
+      ctx.scaleAbout(z, a.x, a.y, d, d)
+      DRAW[KINDS[a.kind]!.plan](ctx as unknown as Ctx, a, ctx.tile)
+      tiles.take(shot, a.depth, a.depth < 0.5 ? 3 : 2)
+      ctx.scaleAbout(z, a.x, a.y)
+      DRAW[KINDS[a.kind]!.plan](ctx as unknown as Ctx, a, ctx.tile)
       tiles.take(shot, a.depth)
     }
+    ctx.scaleAbout(1)
     return shot
   }
 
@@ -138,8 +148,10 @@ export function createBackdrop(o: BackdropOptions = {}): Backdrop {
       const g: El = { tag: 'g', attrs: { opacity: String(Math.round((1 - a.depth * FADE) * 100) / 100) }, kids: [] }
       root.kids.push(g)
       ctx.into = g
+      ctx.scaleAbout(sizeOf(a.depth), a.x, a.y)
       DRAW[KINDS[a.kind]!.plan](ctx as unknown as Ctx, a, 0)
     }
+    ctx.scaleAbout(1)
     return root
   }
 

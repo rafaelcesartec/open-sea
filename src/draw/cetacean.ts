@@ -31,6 +31,8 @@ type Look = {
   /** How far the tail pitches at the top and bottom of a stroke (radians), and where along the body it begins. */
   pitch: number
   pivot: number
+  /** Knobs along the leading edge of the flippers, as a humpback has. */
+  bumps?: boolean
   paint: (ctx: Ctx, b: Body) => void
 }
 
@@ -265,6 +267,14 @@ const CAPE = smooth([
   [0, 1], [0.05, 0.95], [0.075, 0.62], [0.12, 0.5], [0.3, 0.58], [0.5, 0.62], [0.7, 0.7], [0.85, 0.9], [0.95, 1.05],
 ])
 
+function paintHumpback(ctx: Ctx, b: Body): void {
+  // Dark above, a shade paler toward the flanks; the broad flippers are the same dark as the back.
+  ctx.fillStyle = '#56626a'
+  ctx.fill(b.strip(0.02, 0.97, -0.9, 0.9, 0.08))
+  ctx.fillStyle = '#44505a'
+  ctx.fill(b.strip(0.02, 0.97, -0.55, 0.55, 0.08))
+}
+
 function paintDolphin(ctx: Ctx, b: Body): void {
   // From the pale edge of the flank, darkening step by step into the cape.
   ctx.fillStyle = '#858d94'
@@ -281,14 +291,12 @@ function paintDolphin(ctx: Ctx, b: Body): void {
 }
 
 const LOOKS: Record<string, Look> = {
-  // Blue whale: a broad U of a head, widest a third back, a long tapering tail stock, flippers swept back, wide
-  // triangular flukes with a shallow notch.
+  // Blue whale, as seen from above in aerial photographs: a sleek body, the head tapering to a pointed snout, widest
+  // about halfway, a long slender tail stock, flippers swept back, wide triangular flukes with a shallow notch.
   blue: {
     width: [
-      [0, 0], [0.0005, 0.1], [0.0015, 0.165], [0.003, 0.23], [0.008, 0.37], [0.016, 0.5], [0.03, 0.62], [0.05, 0.73],
-      [0.075, 0.82], [0.105, 0.9], [0.15, 0.96], [0.21, 0.995], [0.29, 1], [0.38, 0.99], [0.47, 0.94], [0.56, 0.85],
-      [0.65, 0.7], [0.72, 0.55], [0.78, 0.42], [0.84, 0.3],
-      [0.89, 0.215], [0.925, 0.17], [0.94, 0.12], [0.955, 0.04], [0.96, 0],
+      [0, 0.2], [0.02, 0.45], [0.05, 0.62], [0.1, 0.78], [0.18, 0.9], [0.3, 0.99], [0.42, 1], [0.55, 0.97],
+      [0.66, 0.88], [0.76, 0.7], [0.84, 0.5], [0.9, 0.3], [0.94, 0.14], [0.96, 0],
     ],
     tail: 0.96,
     skin: '#566f80',
@@ -297,9 +305,9 @@ const LOOKS: Record<string, Look> = {
     edge: '#3f5568',
     line: 3,
     flipper: {
-      u: 0.235, theta: 0.7, len: 0.12,
-      // Long and slender, but ending in a narrow rounded tip, not a point: both edges meet it running the same way.
-      shape: [[-0.05, 0.14], [0.3, 0.165], [0.97, 0.085], [1, 0], [1.03, -0.085], [0.32, -0.15], [-0.05, -0.12]],
+      u: 0.235, theta: 0.6, len: 0.14,
+      // A sickle: narrow, the leading edge nearly straight and the trailing edge curving back to a fine point.
+      shape: [[-0.05, 0.06], [0.4, 0.18], [0.9, 0.08], [1.02, 0], [0.9, -0.07], [0.4, -0.14], [-0.05, -0.06]],
     },
     root: 0.925,
     // Broad and triangular, the leading edge swept back, the tips rounded off, a shallow notch in the trailing edge.
@@ -353,6 +361,29 @@ const LOOKS: Record<string, Look> = {
     pitch: 0.55,
     pivot: 0.6,
     paint: paintDolphin,
+  },
+  // Humpback whale: a stout body, the head broad and blunt, the widest just behind it; very broad paddle-shaped
+  // flippers, dark, rounded at the tip; wide flukes with a ragged trailing edge.
+  humpback: {
+    width: [
+      [0, 0.08], [0.012, 0.42], [0.035, 0.65], [0.08, 0.84], [0.14, 0.93], [0.2, 1], [0.35, 0.98], [0.5, 0.9], [0.62, 0.74],
+      [0.72, 0.56], [0.8, 0.4], [0.86, 0.28], [0.91, 0.18], [0.95, 0.08], [0.975, 0],
+    ],
+    tail: 0.975,
+    skin: '#3e4a52',
+    fin: '#2b3138',
+    edge: '#2a3238',
+    line: 2,
+    flipper: {
+      u: 0.2, theta: 0.45, len: 0.2,
+      shape: [[-0.05, 0.05], [0.45, 0.36], [0.95, 0.14], [1, 0], [0.95, -0.12], [0.45, -0.26], [-0.05, -0.05]],
+    },
+    root: 0.94,
+    flukes: [[0.04, 0], [0.06, 0.03], [0.085, 0.14], [0.07, 0.16], [0.055, 0.165], [-0.01, 0.07], [-0.04, 0.015]],
+    pitch: 0.45,
+    pivot: 0.66,
+    bumps: true,
+    paint: paintHumpback,
   },
 }
 
@@ -454,18 +485,22 @@ export function drawCetacean(ctx: Ctx, a: Animal, tile: number): void {
   // The flippers, swept back from the sides; through a turn the inner one is held out and the outer one tucked in.
   const turn = bend(pose(L * 0.4), pose(L * 0.05))
   const fl = look.flipper
-  const flipper = (s: 1 | -1, scale: Pt): Path2D => {
+  // A flipper's frame: its root on the side of the body, its axis swung back by theta.
+  const flipperFrame = (s: 1 | -1): { base: Frame; ca: number; sa: number } => {
     const p = pose(L * fl.u)
     const th = fl.theta + s * Math.max(-0.3, Math.min(0.3, turn * 0.3))
-    const [ca, sa] = [Math.cos(th), Math.sin(th)]
-    const [x, y] = at(p, 0, s * p.w * 0.85)
-    const base: Frame = { ...p, x, y }
+    const [x, y] = at(p, 0, s * p.w * 0.97)
+    return { base: { ...p, x, y }, ca: Math.cos(th), sa: Math.sin(th) }
+  }
+  // A point on a flipper, [along it, across it] in flipper lengths.
+  const flipperPoint = (s: 1 | -1, fs: number, ft: number, scale: Pt = [1, 1]): Pt => {
+    const { base, ca, sa } = flipperFrame(s)
+    const [s0, t0] = [fs * scale[0] * fl.len * L, ft * scale[1] * fl.len * L]
+    return at(base, -ca * s0 + sa * t0, s * (sa * s0 + ca * t0))
+  }
+  const flipper = (s: 1 | -1, scale: Pt): Path2D => {
     const path = new Path2D()
-    const pts = fl.shape.map(([fs, ft]): Pt => {
-      const [s0, t0] = [fs * scale[0] * fl.len * L, ft * scale[1] * fl.len * L]
-      return at(base, -ca * s0 + sa * t0, s * (sa * s0 + ca * t0))
-    })
-    bez(path, pts as Bez)
+    bez(path, fl.shape.map(([fs, ft]) => flipperPoint(s, fs, ft, scale)) as Bez)
     return path
   }
   const flippers = [flipper(-1, [1, 1]), flipper(1, [1, 1])]
@@ -476,13 +511,47 @@ export function drawCetacean(ctx: Ctx, a: Animal, tile: number): void {
   ctx.lineWidth = look.line
   ctx.strokeStyle = look.edge
   for (const part of [flukes, ...flippers, body]) ctx.stroke(part)
-  ctx.fillStyle = look.rim ?? look.fin
-  for (const f of flippers) ctx.fill(f)
-  ctx.fillStyle = look.fin
-  ctx.fill(flukes)
-  if (look.rim !== undefined) for (const s of [-1, 1] as const) ctx.fill(flipper(s, [0.93, 0.62]))
+  // The body first, then the flippers and flukes over its edge: each one's root lies across the side of the body, so
+  // it joins with no seam under it.
   ctx.fillStyle = look.skin
   ctx.fill(body)
   look.paint(ctx, { L, body, flukes, pose, strip, patch, blade, fluke })
+  // Each flipper shades from the body's own colour at its root to its own colour out at the tip, so the root melts
+  // into the side with no dark wedge where they meet.
+  for (const s of [-1, 1] as const) {
+    const [rx, ry] = flipperPoint(s, 0, 0)
+    const [tx, ty] = flipperPoint(s, 0.5, 0)
+    const shade = ctx.createLinearGradient(rx, ry, tx, ty)
+    shade.addColorStop(0, look.skin)
+    shade.addColorStop(0.45, look.rim ?? look.fin)
+    ctx.fillStyle = shade
+    ctx.fill(flippers[s === -1 ? 0 : 1]!)
+  }
+  if (look.bumps) {
+    // A humpback's knobs sit along the leading edge: the first curve of the flipper's outline, from its root to its tip,
+    // a little inside it. Clipped to the flipper, so none can fall outside.
+    const [p0, c1, c2, p1] = fl.shape
+    const edge = (t: number): Pt => {
+      const u = 1 - t
+      const at2 = (i: 0 | 1): number => u * u * u * p0[i]! + 3 * u * u * t * c1[i]! + 3 * u * t * t * c2[i]! + t * t * t * p1[i]!
+      return [at2(0), at2(1)]
+    }
+    ctx.fillStyle = '#7c8890'
+    for (const s of [-1, 1] as const) {
+      ctx.save()
+      ctx.clip(flipper(s, [1, 1]))
+      for (const t of [0.12, 0.26, 0.4, 0.54, 0.68, 0.82]) {
+        const [fs, ft] = edge(t)
+        const [x, y] = flipperPoint(s, fs, ft - 0.03)
+        ctx.beginPath()
+        ctx.arc(x, y, fl.len * L * 0.02, 0, Math.PI * 2)
+        ctx.fill()
+      }
+      ctx.restore()
+    }
+  }
+  ctx.fillStyle = look.fin
+  ctx.fill(flukes)
+  if (look.rim !== undefined) for (const s of [-1, 1] as const) ctx.fill(flipper(s, [0.93, 0.62]))
   ctx.restore()
 }

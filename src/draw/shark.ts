@@ -5,7 +5,7 @@
 import { KINDS, spineOf, type Animal, type Frame } from '../sim.ts'
 import { EYE, at, near as nearest, outline, type Ctx } from './common.ts'
 
-type Look = { fringe: string; flank: string; back: string; bar?: string; tips?: string }
+type Look = { fringe: string; flank: string; back: string; bar?: string; tips?: string; spots?: string }
 
 const LOOKS: Record<string, Look> = {
   // Great white: slate grey above, sometimes a little brown.
@@ -16,6 +16,8 @@ const LOOKS: Record<string, Look> = {
   tiger: { fringe: '#4a524d', flank: '#7b8580', back: '#5d6660', bar: '#363d38' },
   // Blacktip: bronze grey above; black tips on the fins.
   blacktip: { fringe: '#57544b', flank: '#8b877b', back: '#6e6a5f', tips: '#1a1b1d' },
+  // Whale shark: dark blue-grey, its back and sides dotted with pale spots, paler below.
+  whaleshark: { fringe: '#2e3d48', flank: '#6b7d88', back: '#3d4e5a', spots: '#dfe7ea' },
 }
 
 /** A pair of fins swept back from frame `f`: `reach` out, rooted along `root` units of the flank. */
@@ -89,6 +91,23 @@ export function drawShark(ctx: Ctx, s: Animal, tile: number): void {
   outline(ctx, frames, 0.6)
   ctx.fillStyle = look.back
   ctx.fill()
+
+  // A whale shark's spots: over the back and the flanks, pale, scattered by a fixed pattern so they stay put.
+  if (look.spots !== undefined && tile === 0) {
+    ctx.fillStyle = look.spots
+    ctx.beginPath()
+    for (let i = 0; i < frames.length; i += 1) {
+      const f = frames[i]!
+      for (let j = 0; j < 5; j += 1) {
+        const r = Math.sin(i * 12.9898 + j * 78.233) * 43758.5453
+        const u = r - Math.floor(r)
+        const [x, y] = at(f, 0, (j % 2 === 0 ? -1 : 1) * f.w * (0.15 + 0.7 * u))
+        ctx.moveTo(x + 1.6, y)
+        ctx.arc(x, y, 1.1 + u * 0.9, 0, Math.PI * 2)
+      }
+    }
+    ctx.fill()
+  }
 
   // A tiger's bars across the back.
   if (look.bar !== undefined) {

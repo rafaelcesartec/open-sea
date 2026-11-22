@@ -14,9 +14,17 @@ export const GLYPHS = '$%tSX8@:;#S%X8tS'
 export const SHADES = [1, 0.886, 0.776, 0.659]
 export const GLYPH_INK = 0.227
 export const GLYPH_LIFT = 0.72
-/** The water a deep animal fades into, seen through it from above (see index.ts). */
-export const DEEP_DARK = '#171d24'
-export const DEEP_LIGHT = '#c9d8de'
+/** The sea's colour by night and by day: the deep blue of the open ocean from above, darker at night. A deep animal fades
+ * into it, seen through it from above (see index.ts). */
+export const OCEAN_NIGHT = '#0a2034'
+export const OCEAN_DAY = '#2f86ad'
+export const DEEP_DARK = OCEAN_NIGHT
+export const DEEP_LIGHT = OCEAN_DAY
+/** The sea in black and white (the page's Sea switch off): the water and the deep it fades into, as before the blue. */
+export const MONO_NIGHT = '#191919'
+export const MONO_DAY = '#dde6e9'
+export const MONO_DEEP_DARK = '#171d24'
+export const MONO_DEEP_LIGHT = '#c9d8de'
 /** The mosaic: the deepest only tinted toward it a little, and their tiles this much see-through instead. */
 export const TINT = 0.3
 export const CLEAR = 0.85
@@ -421,8 +429,15 @@ export function createMosaic(width: number, height: number, tile: number, textur
     ctx,
     /** A new moment, all water. */
     shot: (): Shot => new Int32Array(cols * rows).fill(-1),
-    /** Lights the tiles of the body just drawn into `ctx`, `depth` deep (0 at the surface to 1), over `shot`. */
-    take(shot: Shot, depth: number): void {
+    /** Lights the tiles of the body just drawn into `ctx`, `depth` deep (0 at the surface to 1), over `shot`. A shadow
+     * (`shadow` a level above 0) darkens the tiles it falls on instead: black, that see-through, whatever is there. */
+    take(shot: Shot, depth: number, shadow = 0): void {
+      if (shadow > 0) {
+        ctx.take(t => {
+          shot[t] = shadow << 24
+        })
+        return
+      }
       // As see-through as it is deep.
       const level = Math.max(1, Math.round((1 - depth * CLEAR) * LEVELS))
       const step = (Q * LEVELS) / level

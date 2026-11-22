@@ -11,9 +11,9 @@
 // in place as an animal passes. `style: 'smooth'` shows the drawn animals themselves.
 
 import { DRAW } from './draw/all.ts'
-import { CLEAR, DEEP_DARK, DEEP_LIGHT, GLYPH_INK, GLYPH_LIFT, TINT, rng, tileTable } from './mosaic.ts'
+import { CLEAR, DEEP_DARK, DEEP_LIGHT, GLYPH_INK, GLYPH_LIFT, MONO_DAY, MONO_DEEP_DARK, MONO_DEEP_LIGHT, MONO_NIGHT, OCEAN_DAY, OCEAN_NIGHT, TINT, rng, tileTable } from './mosaic.ts'
 import { mountPanel, type Settings } from './panel.ts'
-import { KINDS, createSea, depthOf, discsOf, middleOf, place, shift, spineOf, stepSea, type Animal, type Kind, type Point, type Sea } from './sim.ts'
+import { KINDS, createSea, depthOf, discsOf, middleOf, place, shift, sizeOf, spineOf, stepSea, type Animal, type Kind, type Point, type Sea } from './sim.ts'
 
 export type Options = {
   /** 'mosaic' (default): the animals as glyph tiles. 'smooth': the drawn animals themselves. */
@@ -32,16 +32,18 @@ export type Options = {
   speed?: number
   /** Light from the surface: caustics rippling over the animals, the shallower the brighter. Default true. */
   surface?: boolean
+  /** The sea's colour: the blue of the open ocean by day and night, or black and white as before. Default true. */
+  colour?: boolean
   /** Mosaic only: the faint grid and the loose dashes over the water. false leaves the water plain, the animals
    * alone on it. Default true. */
   grid?: boolean
-  /** The dark theme's water. Default #191919. */
+  /** The dark theme's water. Default #0a2034 (the night ocean). */
   background?: string
   /** A floating panel on the right to change all of the above as it runs; the viewer's choices are remembered. */
   controls?: boolean
 }
 
-const LIGHT = '#dde6e9'
+const LIGHT = OCEAN_DAY
 /** How far the deepest fade into the deep water (DEEP_DARK, DEEP_LIGHT: mosaic.ts), and how blurred they are, in sea
  * units (the smooth style only). */
 const FADE = 0.8
@@ -112,6 +114,7 @@ export function mountOpenWater(host: HTMLElement, options: Options = {}): () => 
     observe: null,
     level: 1,
     surface: options.surface ?? true,
+    colour: options.colour ?? true,
     grid: options.grid ?? true,
   }
   if (options.controls === true) {
@@ -130,13 +133,14 @@ export function mountOpenWater(host: HTMLElement, options: Options = {}): () => 
     settings.atOnce = number(settings.atOnce, 1, 8, 4)
     settings.speed = [0.5, 1, 2].includes(settings.speed) ? settings.speed : 1
     settings.surface = settings.surface !== false
+    settings.colour = settings.colour !== false
     settings.grid = settings.grid !== false
     settings.level = [1, 2, 3].includes(settings.level) ? settings.level : 1
     settings.species = Array.isArray(settings.species) ? KINDS.map(k => k.name).filter(n => settings.species.includes(n)) : KINDS.map(k => k.name)
     // Watching one animal is for now, not for next time.
     settings.observe = null
   }
-  const darkWater = options.background ?? '#191919'
+  const darkWater = options.background ?? OCEAN_NIGHT
   /** The open sea's width in units at the distance chosen: 1600 as designed. */
   const normalWidth = (): number => 1600 * Math.max(0.5, settings.zoomOut)
   const tiles = tileTable()
@@ -311,7 +315,7 @@ export function mountOpenWater(host: HTMLElement, options: Options = {}): () => 
     still.width = canvas.width
     still.height = canvas.height
     const sctx = still.getContext('2d')!
-    sctx.fillStyle = light ? LIGHT : darkWater
+    sctx.fillStyle = settings.colour ? (light ? LIGHT : darkWater) : light ? MONO_DAY : MONO_NIGHT
     sctx.fillRect(0, 0, still.width, still.height)
     if (settings.style === 'mosaic' && settings.grid) {
       sctx.strokeStyle = light ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.028)'
@@ -370,7 +374,9 @@ export function mountOpenWater(host: HTMLElement, options: Options = {}): () => 
     const [w, h] = [x1 - x0, y1 - y0]
     c.setTransform(1, 0, 0, 1, 0, 0)
     c.clearRect(x0, y0, w, h)
-    c.setTransform(s, 0, 0, s, -left * s, -top * s)
+    // Drawn about its own middle, a size by depth: the same as the scaleAbout of the backdrop's drawing.
+    const z = sizeOf(a.depth)
+    c.setTransform(s * z, 0, 0, s * z, s * (1 - z) * a.x - left * s, s * (1 - z) * a.y - top * s)
     // A mosaic tile takes one sample: smoothing the caustics there would only cost.
     c.imageSmoothingEnabled = tile === 0
     c.lineJoin = 'round'
@@ -378,7 +384,7 @@ export function mountOpenWater(host: HTMLElement, options: Options = {}): () => 
     c.setTransform(1, 0, 0, 1, 0, 0)
     c.globalCompositeOperation = 'source-atop'
     c.globalAlpha = a.depth * (tile > 0 ? TINT : FADE)
-    c.fillStyle = settings.theme === 'light' ? DEEP_LIGHT : DEEP_DARK
+    c.fillStyle = settings.colour ? (settings.theme === 'light' ? DEEP_LIGHT : DEEP_DARK) : settings.theme === 'light' ? MONO_DEEP_LIGHT : MONO_DEEP_DARK
     c.fillRect(x0, y0, w, h)
     if (settings.surface) {
       // The caustics play over its back, fixed in the water as it swims under them, faint as it goes deeper. The
@@ -528,7 +534,7 @@ export function mountOpenWater(host: HTMLElement, options: Options = {}): () => 
       }
     }
     if (patch.observe !== undefined) observe(patch.observe)
-    if (patch.theme !== undefined || patch.style !== undefined || patch.cell !== undefined || patch.grid !== undefined) water()
+    if (patch.theme !== undefined || patch.style !== undefined || patch.cell !== undefined || patch.grid !== undefined || patch.colour !== undefined) water()
     if (patch.species !== undefined || patch.atOnce !== undefined) {
       rules()
       // Nothing vanishes: a kind no longer wanted, and the oldest beyond the new count, swim off.

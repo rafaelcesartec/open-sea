@@ -3,7 +3,7 @@
 // not too far. And above them all, one: clear of anything big. A fish that sees a body coming darts off at once; the
 // school bursts open round it and, once it has passed, the fish draw together again.
 
-import { KINDS, apart, discsOf, middleOf, turnTo, type Animal, type Fish, type Point } from './sim.ts'
+import { APART, KINDS, discsOf, fishDepth, middleOf, turnTo, type Animal, type Fish, type Point } from './sim.ts'
 
 /** Turning, in radians a second, at the most: quick, but a fish still swings through a turn. */
 const TURN = 7
@@ -15,21 +15,20 @@ export function stepSchool(s: Animal, animals: Animal[], dt: number, random: () 
   if (fish.length === 0) return
   const bl = k.length
   // Real schools pack close: about a body length between neighbours.
-  const near = bl * 1.1
-  const along = bl * 3.5
-  const around = bl * 5
+  const near = bl * 0.8
+  const along = bl * 2.5
+  const around = bl * 3
 
   // The bodies close enough to matter, each as discs, and where each head will be in a moment.
   const { x: cx, y: cy } = middleOf(fish)
-  const threats: (Point & { r: number })[] = []
+  const threats: (Point & { r: number; depth: number })[] = []
   for (const o of animals) {
-    // One at another level passes over or under the school: it does not part for it.
-    if (o === s || KINDS[o.kind]!.plan === 'school' || apart(s, o)) continue
+    if (o === s || KINDS[o.kind]!.plan === 'school') continue
     const ko = KINDS[o.kind]!
     if (Math.hypot(o.x - cx, o.y - cy) > ko.length * 1.3 + 500) continue
-    for (const c of discsOf(o)) threats.push({ x: c.x, y: c.y, r: c.r + bl * 1.5 })
+    for (const c of discsOf(o)) threats.push({ x: c.x, y: c.y, r: c.r + bl * 1.5, depth: o.depth })
     // A head coming on is feared from further off than a body passing.
-    threats.push({ x: o.x + Math.cos(o.heading) * o.speed * 0.5, y: o.y + Math.sin(o.heading) * o.speed * 0.5, r: ko.reach * 0.7 + bl * 2 })
+    threats.push({ x: o.x + Math.cos(o.heading) * o.speed * 0.5, y: o.y + Math.sin(o.heading) * o.speed * 0.5, r: ko.reach * 0.7 + bl * 2, depth: o.depth })
   }
 
   // The school waits for its fish: a head far ahead of them slows.
@@ -87,12 +86,15 @@ export function stepSchool(s: Animal, animals: Animal[], dt: number, random: () 
     const lx = s.x - f.x
     const ly = s.y - f.y
     const l = Math.hypot(lx, ly) || 1
-    const stray = Math.min(1.6, Math.max(0, (l - bl * 3) / (bl * 5)))
+    const stray = Math.min(1.6, Math.max(0, (l - bl * 1.2) / (bl * 3)))
     wx += Math.cos(s.heading) * 0.45 + (lx / l) * stray
     wy += Math.sin(s.heading) * 0.45 + (ly / l) * stray
-    // Fear: straight away from anything big that comes too near, the nearer the harder; and faster.
+    // Fear: straight away from anything big that comes too near, the nearer the harder; and faster. Only from what
+    // swims at this fish's depth: one passing over or under it is no threat to it.
     let fear = 0
+    const fd = fishDepth(s, f)
     for (const c of threats) {
+      if (Math.abs(fd - c.depth) >= APART) continue
       const dx = f.x - c.x
       const dy = f.y - c.y
       const d = Math.hypot(dx, dy) || 1
@@ -113,7 +115,7 @@ export function stepSchool(s: Animal, animals: Animal[], dt: number, random: () 
     const h = heading + turn
     const vx = Math.cos(h) * speed
     const vy = Math.sin(h) * speed
-    return { x: f.x + vx * dt, y: f.y + vy * dt, vx, vy, swum: f.swum + speed * dt, turn: turn / dt }
+    return { x: f.x + vx * dt, y: f.y + vy * dt, vx, vy, swum: f.swum + speed * dt, turn: turn / dt, deep: f.deep }
   })
   s.fish = next
 }

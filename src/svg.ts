@@ -19,6 +19,20 @@ export class SvgPath {
   polys: number[][] = []
   closed: boolean[] = []
   protected open = false
+  private k = 1
+  private ox = 0
+  private oy = 0
+  private dx = 0
+  private dy = 0
+
+  /** From now on every point is taken `k` times as far from (ox, oy), then moved by (dx, dy): a body deeper down is
+   * drawn smaller, and a shadow is its body moved. Called with no arguments, it goes back to the drawing as it is. */
+  scaleAbout(k: number, ox = 0, oy = 0, dx = 0, dy = 0): void {
+    ;[this.k, this.ox, this.oy, this.dx, this.dy] = [k, ox, oy, dx, dy]
+  }
+  private map(x: number, y: number): [number, number] {
+    return [this.ox + (x - this.ox) * this.k + this.dx, this.oy + (y - this.oy) * this.k + this.dy]
+  }
 
   reset(): void {
     this.parts = []
@@ -38,22 +52,43 @@ export class SvgPath {
     return [p[p.length - 2]!, p[p.length - 1]!]
   }
   // As the canvas does, a call with a point that is not a number is left out: one NaN must not blank the shape.
+  // The points are mapped once here; the private steps take them as they are.
   moveTo(x: number, y: number): void {
     if (!finite(x, y)) return
-    this.parts.push(`M${num(x)} ${num(y)}`)
-    this.start(x, y)
-    this.open = true
+    this.mv(...this.map(x, y))
   }
   lineTo(x: number, y: number): void {
     if (!finite(x, y)) return
-    if (!this.open) return this.moveTo(x, y)
-    this.parts.push(`L${num(x)} ${num(y)}`)
-    this.to(x, y)
+    const [px, py] = this.map(x, y)
+    if (!this.open) return this.mv(px, py)
+    this.ln(px, py)
   }
   // A curve with no point to start from starts at its first control point, as the canvas does.
   quadraticCurveTo(cx: number, cy: number, x: number, y: number): void {
     if (!finite(cx, cy, x, y)) return
-    if (!this.open) this.moveTo(cx, cy)
+    const [qx, qy] = this.map(cx, cy)
+    const [px, py] = this.map(x, y)
+    if (!this.open) this.mv(qx, qy)
+    this.qd(qx, qy, px, py)
+  }
+  bezierCurveTo(c1x: number, c1y: number, c2x: number, c2y: number, x: number, y: number): void {
+    if (!finite(c1x, c1y, c2x, c2y, x, y)) return
+    const [ax, ay] = this.map(c1x, c1y)
+    const [bx, by] = this.map(c2x, c2y)
+    const [px, py] = this.map(x, y)
+    if (!this.open) this.mv(ax, ay)
+    this.bz(ax, ay, bx, by, px, py)
+  }
+  private mv(x: number, y: number): void {
+    this.parts.push(`M${num(x)} ${num(y)}`)
+    this.start(x, y)
+    this.open = true
+  }
+  private ln(x: number, y: number): void {
+    this.parts.push(`L${num(x)} ${num(y)}`)
+    this.to(x, y)
+  }
+  private qd(cx: number, cy: number, x: number, y: number): void {
     this.parts.push(`Q${num(cx)} ${num(cy)} ${num(x)} ${num(y)}`)
     const [x0, y0] = this.here
     for (let i = 1; i <= 6; i += 1) {
@@ -62,9 +97,7 @@ export class SvgPath {
       this.to(u * u * x0 + 2 * u * t * cx + t * t * x, u * u * y0 + 2 * u * t * cy + t * t * y)
     }
   }
-  bezierCurveTo(c1x: number, c1y: number, c2x: number, c2y: number, x: number, y: number): void {
-    if (!finite(c1x, c1y, c2x, c2y, x, y)) return
-    if (!this.open) this.moveTo(c1x, c1y)
+  private bz(c1x: number, c1y: number, c2x: number, c2y: number, x: number, y: number): void {
     this.parts.push(`C${num(c1x)} ${num(c1y)} ${num(c2x)} ${num(c2y)} ${num(x)} ${num(y)}`)
     const [x0, y0] = this.here
     for (let i = 1; i <= 8; i += 1) {

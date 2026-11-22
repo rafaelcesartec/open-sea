@@ -57,12 +57,12 @@ const KEPT = 'sea'
 /** Up to three animals at once, and not the blue whale or the school: they light the most tiles, so the app has the
  * least to redraw. */
 const AT_ONCE = 3
-const SPECIES = ['white', 'hammer', 'tiger', 'blacktip', 'orca', 'dolphin', 'turtle', 'manta', 'squid']
-// The water is the colour of the app's own panels in each mode, so a panel over it (60% of its colour, glass below)
-// comes out that same colour and the window is one even ground, as with no theme. By night it is measured off the
-// desktop app, exactly: water a shade off shows the panel's soft edges as a glow (#0b0b0b) or as faint vertical
-// bands (#181818, one level off). By day measured too, and it is the stock surface-0: the page's pale blue tinted the edges.
-const [WATER, LIGHT_WATER] = ['#191919', '#f9f9f7']
+const SPECIES = ['white', 'hammer', 'tiger', 'blacktip', 'orca', 'dolphin', 'turtle', 'manta', 'squid', 'whaleshark', 'humpback']
+// A switch for the sea, set here: the mod has no settings panel of its own, so change it and reload the app.
+// SEA_COLOUR: the blue of the open ocean seen from above, deep blue by day and near black at night, as the app's mode;
+// off, the sea is black and white, as before the blue. The blue is the same as the page's (mosaic.ts).
+const SEA_COLOUR = true
+const [WATER, LIGHT_WATER] = SEA_COLOUR ? ['#0a2034', '#2f86ad'] : ['#191919', '#dde6e9']
 // Only the sea is ours: the app's own colours stay as they are, in both modes. No veil on the panels: even of the
 // water's own colour, the app mixes its soft edge a level off here and there, faint vertical lines at the sides of
 // the text; and no blur, which it would redo at every change of a sea that moves.

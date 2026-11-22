@@ -21,7 +21,7 @@ import { stepSchool } from './school.ts'
 export type Plan = 'shark' | 'cetacean' | 'turtle' | 'ray' | 'squid' | 'school'
 
 export type Kind = {
-  name: 'white' | 'hammer' | 'tiger' | 'blacktip' | 'blue' | 'orca' | 'dolphin' | 'turtle' | 'manta' | 'squid' | 'jacks'
+  name: 'white' | 'hammer' | 'tiger' | 'blacktip' | 'blue' | 'orca' | 'dolphin' | 'turtle' | 'manta' | 'squid' | 'jacks' | 'whaleshark' | 'humpback'
   plan: Plan
   /** Front tip to the tip of the tail (a squid: mantle tip to the end of its tentacles; a school: one fish). */
   length: number
@@ -78,7 +78,7 @@ export const KINDS: Kind[] = [
   { ...shark, name: 'blacktip', length: 1.6 * M, girth: 10, widest: 0.32, snout: 0.6, fin: 23, reach: 36, speed: 100, beat: 0.9, turn: 0.6, sprint: 2.3, whim: 1.3, prey: [], levels: [1, 2] },
   // Blue whale, 24 m: long and slender, a broad flat U-shaped head, a small fin far back, flukes a quarter its
   // length across. It barely turns; it passes through.
-  { ...cetacean, name: 'blue', length: 24 * M, girth: 0.07 * 24 * M, profile: [[0, 0.45], [0.05, 0.78], [0.15, 0.93], [0.35, 1], [0.6, 0.82], [0.8, 0.42], [0.9, 0.18]], reach: 330, speed: 128, beat: 6, turn: 0.8, sprint: 1.4, whim: 0.2, stay: [4, 14], prey: [], levels: [1, 2] },
+  { ...cetacean, name: 'blue', length: 24 * M, girth: 0.06 * 24 * M, profile: [[0, 0.45], [0.05, 0.78], [0.15, 0.93], [0.35, 1], [0.6, 0.82], [0.8, 0.42], [0.9, 0.18]], reach: 330, speed: 128, beat: 6, turn: 0.8, sprint: 1.4, whim: 0.2, stay: [4, 14], prey: [], levels: [1, 2] },
   // Orca, 7 m: robust, a blunt rounded head, broad paddle flippers.
   { ...cetacean, name: 'orca', length: 7 * M, girth: 0.09 * 7 * M, profile: [[0, 0.4], [0.06, 0.8], [0.25, 1], [0.5, 0.9], [0.75, 0.45], [0.9, 0.17]], reach: 135, speed: 120, beat: 1.6, turn: 0.45, sprint: 2.5, whim: 1.2, prey: ['white', 'tiger', 'hammer', 'blacktip', 'dolphin', 'manta'], levels: [1, 2] },
   // Bottlenose dolphin, 2.7 m: a short beak before the melon, small pointed flippers. Quick and restless.
@@ -94,14 +94,19 @@ export const KINDS: Kind[] = [
   // A school of bigeye trevally, 60 cm each, the silver school of every drone shot from above: they keep together and
   // go one way; it parts round anything big and closes again.
   { name: 'jacks', plan: 'school', length: 0.6 * M, girth: 4, widest: 0, snout: 0, fin: 0, reach: 260, speed: 55, beat: 0.5, turn: 3.5, trunk: 1, sway: 0.1, surge: 0, sprint: 3, whim: 1, stay: [30, 70], prey: [], levels: [1, 2] },
+  // Whale shark, 12 m: the biggest fish, broad and flat across the head, a blunt wide mouth, very slow.
+  { ...shark, name: 'whaleshark', length: 12 * M, girth: 125, widest: 0.3, snout: 0.3, fin: 170, reach: 260, speed: 60, beat: 3, turn: 0.4, sprint: 1.6, whim: 0.3, stay: [40, 90], prey: [], levels: [1, 2] },
+  // Humpback whale, 15 m: a stout whale with very broad flippers, slower than the blue.
+  { ...cetacean, name: 'humpback', length: 15 * M, girth: 0.1 * 15 * M, reach: 0.2 * 15 * M + 10, speed: 110, beat: 4, turn: 0.7, sprint: 1.6, whim: 0.4, stay: [15, 50], prey: [], levels: [1, 2] },
 ]
 
 /** Units between two points of a body. */
 const STEP = 10
 
 export type Point = { x: number; y: number }
-/** One fish of a school: where it is, its velocity, how far it has swum and how fast it is turning. */
-export type Fish = Point & { vx: number; vy: number; swum: number; turn: number }
+/** One fish of a school: where it is, its velocity, how far it has swum, how fast it is turning, and how far above
+ * (negative) or below the school's depth it swims: a school is spread through depth, not on one surface. */
+export type Fish = Point & { vx: number; vy: number; swum: number; turn: number; deep: number }
 export type Animal = {
   kind: number
   x: number
@@ -276,10 +281,16 @@ export function createSea(w: number, h: number): Sea {
 
 /** The depth of a level (1 to 3). */
 export const depthOf = (level: number): number => (level - 1) / 2
+/** How big an animal is drawn at a depth: whole at the surface, a fifth smaller at the deepest, as it is seen from above. */
+export const sizeOf = (depth: number): number => 1 - 0.2 * depth
 /** One of the levels it keeps, at random, as a depth. */
 const deepIn = (k: Kind, random: () => number): number => depthOf(k.levels[Math.floor(random() * k.levels.length)]!)
+/** How far apart in depth two bodies are before they pass one over the other. */
+export const APART = 0.25
 /** Two at different levels pass one over the other: neither has to give way. */
-export const apart = (a: Animal, b: Animal): boolean => Math.abs(a.depth - b.depth) >= 0.25
+export const apart = (a: Animal, b: Animal): boolean => Math.abs(a.depth - b.depth) >= APART
+/** How deep one fish of a school swims: the school's depth and its own spread, kept between the surface and the deepest. */
+export const fishDepth = (a: Animal, f: Fish): number => Math.min(1, Math.max(0, a.depth + f.deep))
 
 /** An animal of `kind` with its head at (x, y), its body straight behind it, making for `to`. */
 function make(kind: number, x: number, y: number, heading: number, to: Point, random: () => number): Animal {
@@ -292,7 +303,7 @@ function make(kind: number, x: number, y: number, heading: number, to: Point, ra
     for (let i = 0; i < 160; i += 1) {
       const back = Math.sqrt(random()) * 380
       const side = (random() - 0.5) * 320
-      a.fish.push({ x: x - Math.cos(heading) * back - Math.sin(heading) * side, y: y - Math.sin(heading) * back + Math.cos(heading) * side, vx: Math.cos(heading) * k.speed, vy: Math.sin(heading) * k.speed, swum: random() * 50, turn: 0 })
+      a.fish.push({ x: x - Math.cos(heading) * back - Math.sin(heading) * side, y: y - Math.sin(heading) * back + Math.cos(heading) * side, vx: Math.cos(heading) * k.speed, vy: Math.sin(heading) * k.speed, swum: random() * 50, turn: 0, deep: (random() * 2 - 1) * 0.3 })
     }
   }
   return a

@@ -29,6 +29,8 @@ export type Settings = {
   level: 1 | 2 | 3
   /** Light from the surface: caustics rippling over the animals. */
   surface: boolean
+  /** The sea's colour: the blue of the open ocean, or black and white. */
+  colour: boolean
   /** Mosaic only: the faint grid and loose dashes over the water; off, the water is plain. */
   grid: boolean
 }
@@ -48,10 +50,12 @@ const LABELS: Record<Name, [string, string, string]> = {
   manta: ['Manta', 'Manta ray', '#33373c'],
   squid: ['Giant squid', 'Giant squid', '#8a3a33'],
   jacks: ['Jacks', 'School of jacks', '#a3afb5'],
+  whaleshark: ['Whale shark', 'Whale shark', '#5f7a86'],
+  humpback: ['Humpback', 'Humpback whale', '#4a5860'],
 }
 const GROUPS: [string, Name[]][] = [
-  ['Sharks', ['white', 'hammer', 'tiger', 'blacktip']],
-  ['Mammals', ['blue', 'orca', 'dolphin']],
+  ['Sharks', ['white', 'hammer', 'tiger', 'blacktip', 'whaleshark']],
+  ['Mammals', ['blue', 'orca', 'dolphin', 'humpback']],
   ['Others', ['turtle', 'manta', 'squid', 'jacks']],
 ]
 const ORDER: Name[] = GROUPS.flatMap(([, names]) => names)
@@ -83,6 +87,7 @@ const CSS = `
 * { box-sizing: border-box; }
 .wrap {
   --glass: rgba(26, 29, 33, 0.22);
+  --foot: rgba(18, 22, 26, 0.86);
   --edge: rgba(255, 255, 255, 0.12);
   --shine: rgba(255, 255, 255, 0.08);
   --text: #eef1f2;
@@ -110,6 +115,7 @@ const CSS = `
 }
 .wrap.light {
   --glass: rgba(255, 255, 255, 0.3);
+  --foot: rgba(246, 249, 250, 0.9);
   --edge: rgba(255, 255, 255, 0.75);
   --shine: rgba(255, 255, 255, 0.5);
   --text: #1a2024;
@@ -232,6 +238,11 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
 .card:hover { background: var(--chip-hover); }
 .card[aria-pressed="true"] { border-color: var(--accent); background: var(--chip-on); }
 .card .name { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 550; }
+/* Kept at the panel's foot as it scrolls: always in reach. */
+.exporting { position: sticky; bottom: 0; padding: 10px 18px 14px; border-top: 1px solid var(--track); background: var(--foot); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.export { width: 100%; padding: 10px; border-radius: 12px; background: var(--accent); color: var(--accent-ink); font-weight: 650; text-shadow: none; }
+.export:disabled { opacity: 0.6; cursor: default; }
+.note { margin-top: 8px; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; user-select: text; }
 .card .size { grid-column: 2; color: var(--muted); font-size: 11.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 
 footer { padding: 10px 18px 14px; border-top: 1px solid var(--track); color: var(--faint); font-size: 11.5px; display: flex; flex-wrap: wrap; gap: 4px 10px; }
@@ -251,6 +262,8 @@ export function mountPanel(
   settings: Settings,
   change: (patch: Partial<Settings>) => void,
   inView: () => Name[],
+  /** Given, an Export button: it makes a file of the sea as set, and says what it made. */
+  exportFile?: () => Promise<string>,
 ): { remove: () => void; covered: () => number } {
   const root = document.createElement('div')
   host.appendChild(root)
@@ -300,6 +313,7 @@ export function mountPanel(
         <div class="section">View</div>
         <div class="block pair"><span>Style</span>${seg('style', 'Style', [['mosaic', 'Mosaic'], ['smooth', 'Smooth']])}</div>
         <div class="block pair"><span>Surface</span>${seg('surface', 'Surface', [['on', 'Lit'], ['off', 'Off']])}</div>
+        <div class="block pair"><span>Sea</span>${seg('colour', 'Sea', [['on', 'Blue'], ['off', 'Mono']])}</div>
         <div class="block">
           <div class="label"><label for="zoomOut">Distance</label><span class="hint" data-value="zoomOut"></span></div>
           <input id="zoomOut" type="range" min="0.6" max="3" step="0.1">
@@ -313,6 +327,7 @@ export function mountPanel(
         <div class="block pair" data-row="grid"><span>Grid</span>${seg('grid', 'Grid', [['on', 'On'], ['off', 'Off']])}</div>
         <div class="block pair"><span>Speed</span>${seg('speed', 'Speed', [['0.5', '0.5×'], ['1', '1×'], ['2', '2×']])}</div>
       </div>
+      ${exportFile === undefined ? '' : '<div class="exporting"><button type="button" class="export" data-export>Export</button><div class="note" data-export-note aria-live="polite"></div></div>'}
 
       <footer><span><kbd>Space</kbd> pause</span><span><kbd>H</kbd> hide</span><span><kbd>←</kbd><kbd>→</kbd> change animal</span><span><kbd>Esc</kbd> back to the sea</span></footer>
     </div>
@@ -385,6 +400,7 @@ export function mountPanel(
     for (const b of $$<HTMLButtonElement>('[data-level]')) b.setAttribute('aria-pressed', String(Number(b.dataset.level) === settings.level))
     for (const b of $$<HTMLButtonElement>('[data-surface]')) b.setAttribute('aria-pressed', String((b.dataset.surface === 'on') === settings.surface))
     for (const b of $$<HTMLButtonElement>('[data-grid]')) b.setAttribute('aria-pressed', String((b.dataset.grid === 'on') === settings.grid))
+    for (const b of $$<HTMLButtonElement>('[data-colour]')) b.setAttribute('aria-pressed', String((b.dataset.colour === 'on') === settings.colour))
     for (const b of $$<HTMLButtonElement>('[data-watch]')) b.setAttribute('aria-pressed', String(b.dataset.watch === settings.observe))
     if (settings.observe !== null) {
       $<HTMLElement>('[data-who]').textContent = LABELS[settings.observe][1]
@@ -416,12 +432,20 @@ export function mountPanel(
     else if (d.level !== undefined) set({ level: Number(d.level) as Settings['level'] })
     else if (d.surface !== undefined) set({ surface: d.surface === 'on' })
     else if (d.grid !== undefined) set({ grid: d.grid === 'on' })
+    else if (d.colour !== undefined) set({ colour: d.colour === 'on' })
     else if (b.hasAttribute('data-pause')) set({ paused: !settings.paused })
     else if (b.hasAttribute('data-less')) set({ atOnce: Math.max(1, settings.atOnce - 1) })
     else if (b.hasAttribute('data-more')) set({ atOnce: Math.min(8, settings.atOnce + 1) })
     else if (b.hasAttribute('data-all')) set({ species: KINDS.map(k => k.name) })
     else if (b.hasAttribute('data-none')) set({ species: [] })
-    else if (b.hasAttribute('data-collapse')) toggle(false)
+    else if (b.hasAttribute('data-export') && exportFile !== undefined) {
+      b.disabled = true
+      const note = $<HTMLDivElement>('[data-export-note]')
+      exportFile()
+        .then(text => (note.textContent = text))
+        .catch((err: unknown) => (note.textContent = `Could not export: ${String(err)}`))
+        .finally(() => (b.disabled = false))
+    } else if (b.hasAttribute('data-collapse')) toggle(false)
     else if (b.hasAttribute('data-open')) toggle(true)
   })
   shadow.addEventListener('input', e => {

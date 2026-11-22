@@ -7,7 +7,9 @@
     "build": "esbuild src/index.ts --bundle --format=esm --target=es2020 --outfile=open-water.js",
     "check": "tsc",
     "test": "node --test",
-    "theme": "esbuild src/backdrop.ts --bundle --format=esm --target=es2020 --outfile=theme/hooks/backdrop.js"
+    "theme": "esbuild src/backdrop.ts --bundle --format=esm --target=es2020 --outfile=theme/hooks/backdrop.js",
+    "build:gpu": "node scripts/build-gpu.mjs",
+    "bench:gpu": "node scripts/bench.mjs"
   },
   "devDependencies": {
     "@types/node": "26.6.6",

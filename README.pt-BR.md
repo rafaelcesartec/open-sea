@@ -6,11 +6,11 @@
 
 **Veja ao vivo:** https://rafaelcesardev.github.io/open-water/ · **Tema do Claude:** [instalar](#tema-do-claude)
 
-Um mar escuro visto de cima, ao vivo, e os animais que passam por ele no tamanho real de cada um: tubarões (branco, martelo, tigre e galha-preta), baleia-azul, orca, golfinho, tartaruga-verde, manta, lula-gigante e um cardume de xaréus-olho-grande. Desenhados como um mosaico de ladrilhos com letras, ou com o contorno liso.
+Um oceano azul visto de cima, ao vivo, e os animais que passam por ele no tamanho real de cada um: tubarões (branco, martelo, tigre, galha-preta e tubarão-baleia), baleia-azul, baleia-jubarte, orca, golfinho, tartaruga-verde, manta, lula-gigante e um cardume de xaréus-olho-grande. Desenhados como um mosaico de ladrilhos com letras, ou com o contorno liso.
 
 - **Ao vivo:** nada é gravado. Cada animal decide na hora, com sorteio de verdade, então nenhum minuto se repete.
 - **Só existe o que está na tela:** no máximo 4 animais por vez (o cardume conta como um). Cada um entra por uma borda sorteada, num ponto sorteado, fica um tempo e vai embora; quando sai inteiro da tela, deixa de existir, e daqui a pouco entra outro. O novo nunca é da espécie que acabou de sair, nem de uma que já está na tela.
-- **Tamanho real:** 80 unidades por metro. A baleia-azul (24 m) ocupa quase a largura da tela; a tartaruga (1,2 m) é pequena perto dela; cada xaréu do cardume mede 60 cm.
+- **Tamanho real:** 80 unidades por metro. A baleia-azul (24 m) ocupa quase a largura da tela; a tartaruga (1,2 m) é pequena perto dela; cada xaréu do cardume mede 60 cm. Mais fundo, o animal é desenhado menor, um quinto a menos na camada mais funda, e a profundidade vira distância; ele cresce ou diminui aos poucos ao subir ou descer de camada.
 - **Comportamento:**
   - passeiam, dão arrancadas e deslizam, cada espécie no seu ritmo: o golfinho é inquieto, a baleia quase não vira e só atravessa;
   - caçam o que caçam na vida real: a orca persegue tubarões, golfinhos e mantas; o tubarão-tigre persegue a tartaruga; o branco persegue o galha-preta, o golfinho e a tartaruga; golfinho, tigre e martelo vão atrás do cardume. A presa foge;
@@ -22,9 +22,9 @@ Um mar escuro visto de cima, ao vivo, e os animais que passam por ele no tamanho
   - baleia, orca e golfinho batem a cauda para cima e para baixo e quase não balançam de lado;
   - o casco da tartaruga e o disco da manta são rígidos: a tartaruga rema com as nadadeiras da frente e plana, e a manta bate as asas devagar;
   - a lula vai com o manto à frente, em jatos, com os braços e os tentáculos atrás.
-- **Cores reais vistas de cima:** o dorso de cada espécie, mais escuro no meio e mais claro para os lados. Orca e manta usam um preto levemente clareado, senão sumiriam no mar escuro. Quanto mais fundo, mais o animal se apaga na água: no estilo liso, a cor vai para a da água, um pouco mais azulada, e o contorno desfoca; no mosaico, os ladrilhos ficam transparentes (metade no nível 2, quase invisíveis no 3).
+- **Cores reais vistas de cima:** o dorso de cada espécie, mais escuro no meio e mais claro para os lados. Orca e manta usam um preto levemente clareado, senão sumiriam no mar escuro. Quanto mais fundo, mais o animal se apaga na água: no estilo liso, a cor vai para a da água, um pouco mais azulada, e o contorno desfoca; no mosaico, os ladrilhos ficam transparentes (metade no nível 2, quase invisíveis no 3). O cardume também se espalha em profundidade: cada peixe nada um pouco acima ou abaixo do nível do cardume, é desenhado no próprio tamanho ali e fica mais apagado quando está mais fundo, e cada peixe só foge do que nada no seu nível. A luz de cima projeta uma sombra suave, para baixo e para a direita, que cai sobre o que nada por baixo; quanto mais fundo o animal, mais longe e mais fraca ela cai. No mar escuro ela quase não aparece.
 - **Superfície:** a luz que as ondulações da superfície focam (cáusticas) passa pelo dorso dos animais, presa à água enquanto eles nadam por baixo, mais forte nos rasos e mais fraca à noite.
-- **Mosaico:** cada ladrilho acende inteiro com a cor do animal que está embaixo, um pouco mais claro ou mais escuro que os vizinhos, com uma letra recortada. Os xaréus são mais finos que um ladrilho, então cada um acende um traço de ladrilhos ao longo do corpo, e o cardume aparece como muitos traços paralelos, todos na mesma direção.
+- **Mosaico:** cada ladrilho acende inteiro com a cor do animal que está embaixo, um pouco mais claro ou mais escuro que os vizinhos, com uma letra recortada. Os xaréus são mais finos que um ladrilho, então cada um acende um traço curto, de uns dois ladrilhos e meio, pelo meio do corpo, e o cardume aparece como muitos traços paralelos, todos na mesma direção.
 
 ## Controles
 
@@ -33,7 +33,7 @@ Um painel flutuante à direita, de vidro fosco transparente (os animais aparecem
 - **Mar aberto** (Open sea): os animais entram e saem. Escolha quantos podem aparecer de uma vez (− 1 a 8 +) e quais espécies podem entrar, em botões agrupados (Sharks, Mammals, Others), com um ponto verde em quem está na tela agora. Desligar uma espécie, ou diminuir o número, faz os que sobram irem embora nadando, sem sumir de repente.
 - **Observar** (Watch): um animal sozinho, para avaliar formato e movimento. Ele continua nadando, virando e acelerando como sempre, mas a câmera o acompanha e o mantém no meio da área livre. Partículas na água passam por ele e mostram o deslocamento. Os cartões mostram o tamanho real de cada um, e as setas ‹ › passam para o próximo animal. Em Profundidade (Depth: Shallow, Mid, Deep) se escolhe o nível dele; ao trocar, ele sobe ou desce até lá, devagar.
 
-Valem para os dois modos: mosaico ou liso (Style), luz da superfície ligada ou não (Surface), distância (Distance), tamanho do ladrilho do mosaico (Mosaic tile), grade sobre a água ou água lisa, só no mosaico (Grid), e velocidade (Speed: 0.5×, 1×, 2×).
+Valem para os dois modos: mosaico ou liso (Style), luz da superfície ligada ou não (Surface), mar azul ou em preto e branco (Sea), distância (Distance), tamanho do ladrilho do mosaico (Mosaic tile), grade sobre a água ou água lisa, só no mosaico (Grid), e velocidade (Speed: 0.5×, 1×, 2×).
 
 Atalhos: `Espaço` pausa, `H` esconde o painel, `←` `→` trocam o animal observado, `Esc` volta ao mar aberto.
 
@@ -65,18 +65,19 @@ Opções:
 - `cell`: tamanho do ladrilho do mosaico, em unidades do mar (1600 de largura com `zoomOut: 1`). Padrão `10`. Menor deixa o mosaico mais fino.
 - `theme`: `'dark'` (padrão), o mar à noite; ou `'light'`, água clara.
 - `atOnce`: quantos animais no máximo de uma vez (o cardume conta como um). Padrão `4`.
-- `species`: as espécies que podem entrar, por nome (`'white'`, `'hammer'`, `'tiger'`, `'blacktip'`, `'blue'`, `'orca'`, `'dolphin'`, `'turtle'`, `'manta'`, `'squid'`, `'jacks'`). Padrão: todas.
+- `species`: as espécies que podem entrar, por nome (`'white'`, `'hammer'`, `'tiger'`, `'blacktip'`, `'blue'`, `'orca'`, `'dolphin'`, `'turtle'`, `'manta'`, `'squid'`, `'jacks'`, `'whaleshark'`, `'humpback'`). Padrão: todas.
 - `speed`: velocidade do tempo. `1` é tempo real. Padrão `1`.
 - `surface`: `true` (padrão) liga a luz da superfície (cáusticas sobre os animais); `false` desliga.
+- `colour`: `true` (padrão) pinta o mar com o azul do oceano aberto; `false` deixa em preto e branco, como antes.
 - `grid`: só no mosaico. `true` (padrão) mostra a grade fraca e os tracinhos sobre a água; `false` deixa a água lisa, só com os animais.
-- `background`: cor da água no tema escuro. Padrão `#191919`.
+- `background`: cor da água no tema escuro. Padrão `#0a2034` (o oceano da noite); o oceano do dia é `#2f86ad`.
 - `controls`: `true` mostra o painel de controles. Padrão `false`, para quem incorpora num site não ganhar um painel sem pedir. O `index.html` liga.
 
 Com "reduzir movimento" ligado no sistema, mostra uma cena parada.
 
 ## Tema do Claude
 
-Os animais do Open Water passando ao vivo atrás da conversa no app desktop do Claude e no celular, em mosaico. O tema não mexe em nenhuma cor do app: a água é o próprio fundo do app em cada modo, lisa, e só os animais se movem por cima. No terminal e nos editores (VS Code, JetBrains) o tema não desenha nada.
+Os animais do Open Water passando ao vivo atrás da conversa no app desktop do Claude e no celular, em mosaico. O mar é o fundo do app em cada modo: o azul do oceano aberto de dia, mais escuro à noite, liso, com os animais se movendo por cima. Isso muda versões anteriores, em que a água era a cor dos painéis do app; o tema continua sem mexer em nenhuma outra cor do app. No terminal e nos editores (VS Code, JetBrains) o tema não desenha nada.
 
 ### Instalar
 
@@ -111,8 +112,8 @@ claude plugin uninstall open-water            # tira o tema; o app volta ao visu
 
 - Até 3 animais de uma vez: os quatro tubarões, orca, golfinho, tartaruga, manta e lula-gigante. A baleia-azul e o cardume ficam de fora, porque são os que mais pesam para o app.
 - O mod roda a simulação no seu computador: uns 5% de um núcleo, em média.
-- Sem a luz da superfície (cáusticas), sem a grade e sem os tracinhos da página.
-- O mar segue o modo claro ou escuro que o app passa para o fundo (`prefers-color-scheme`), na cor de fundo do app em cada um (`#191919` no escuro, `#f9f9f7` no claro). Os painéis ficam sem véu e sem desfoque, então a tela fica de um tom só.
+- Sem a luz da superfície (cáusticas), sem a grade e sem os tracinhos da página. O app não tem painel de configurações: `SEA_COLOUR`, no topo de `theme/hooks/register.tsx`, desliga o azul.
+- O mar segue o modo claro ou escuro que o app passa para o fundo (`prefers-color-scheme`), o oceano da noite (`#0a2034`) no escuro e o oceano do dia (`#2f86ad`) no claro. Os painéis ficam sem véu e sem desfoque, então a tela fica de um tom só.
 
 ### Como funciona
 
@@ -144,6 +145,7 @@ O `theme/hooks/backdrop.js` vai no repositório, já gerado: quem instala não p
 - `src/svg.ts`: um contexto de desenho que grava SVG em vez de pintar, e junta vários momentos num SVG animado.
 - `src/mosaic.ts`: os ladrilhos do mosaico (os mesmos da página) e o mosaico sem canvas.
 - `src/backdrop.ts`: o mar como fundo do app Claude; `theme/` é o mod que o usa.
+- `src/gpu/`: o mesmo mar em WebGPU, num arquivo só (`npm run build:gpu`, gera `dist/index.html`), com um botão Export que o grava para outro site. É um porte: uma mudança na simulação ou nos desenhos é levada para lá como diz [src/gpu/README.md](src/gpu/README.md).
 
 Tudo é TypeScript; o único JavaScript é o gerado (`open-water.js` e `theme/hooks/backdrop.js`) e o `theme/hooks/make-colors.js`, copiado como veio do kit de mods do Claude Code. Funciona igual com Node ou Bun:
 
