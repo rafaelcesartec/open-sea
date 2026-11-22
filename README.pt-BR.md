@@ -1,4 +1,4 @@
-# Open Water
+# Open Sea
 
 [English](README.md) · **Português**
 
@@ -77,13 +77,13 @@ Com "reduzir movimento" ligado no sistema, mostra uma cena parada.
 
 ## Tema do Claude
 
-Os animais do Open Water passando ao vivo atrás da conversa no app desktop do Claude e no celular, em mosaico. O mar é o fundo do app em cada modo: o azul do oceano aberto de dia, mais escuro à noite, liso, com os animais se movendo por cima. Isso muda versões anteriores, em que a água era a cor dos painéis do app; o tema continua sem mexer em nenhuma outra cor do app. No terminal e nos editores (VS Code, JetBrains) o tema não desenha nada.
+Os animais do Open Sea passando ao vivo atrás da conversa no app desktop do Claude e no celular, em mosaico. O mar é o fundo do app em cada modo: o azul do oceano aberto de dia, mais escuro à noite, liso, com os animais se movendo por cima. Isso muda versões anteriores, em que a água era a cor dos painéis do app; o tema continua sem mexer em nenhuma outra cor do app. No terminal e nos editores (VS Code, JetBrains) o tema não desenha nada.
 
 ### Instalar
 
 Precisa do Claude Code 2.1.275 ou mais novo.
 
-No app desktop: clique no **+** ao lado da caixa de mensagem, depois em **Plugins**, **Add marketplace**, digite `rafaelcesardev/open-water` e, em seguida, **Add plugin** no Open Water.
+No app desktop: clique no **+** ao lado da caixa de mensagem, depois em **Plugins**, **Add marketplace**, digite `rafaelcesardev/open-water` e, em seguida, **Add plugin** no Open Sea.
 
 No terminal, dentro de uma sessão do Claude Code:
 

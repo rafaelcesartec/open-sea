@@ -1,4 +1,4 @@
-// Open Water as the Claude app's look: the sea behind the conversation, live, at night or by day as the app is. The
+// Open Sea as the Claude app's look: the sea behind the conversation, live, at night or by day as the app is. The
 // sea is simulated here, a few seconds at a time, and each stretch is sent to the app as one SVG that plays itself
 // (backdrop.js, bundled from src/backdrop.ts by `npm run theme`).
 // ONE SEA, WHATEVER THE CHAT: each chat is a session of its own, running this module by itself, and the app shows the
@@ -13,7 +13,7 @@ import { makeColors } from './make-colors.js'
 // The water at night, a little bluer in the panels, as the deep fades into it; by day the page's pale water, the
 // cards lighter than it. The page's own accents, its night ones for the hue.
 const { problems } = makeColors({
-  label: 'Open Water',
+  label: 'Open Sea',
   roles: { accent: '#8fd3e8', danger: '#e07a6e', success: '#7ee0a1', warning: '#e0b86e', pro: '#b9a3e8' },
   light: {
     gray: {

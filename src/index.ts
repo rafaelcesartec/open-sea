@@ -1,4 +1,4 @@
-// Open Water, live: a dark sea seen from above, on a canvas, and the animals passing through it at their real sizes:
+// Open Sea, live: a dark sea seen from above, on a canvas, and the animals passing through it at their real sizes:
 // sharks, a blue whale, orcas, dolphins, a sea turtle, a manta, a giant squid, a school of bigeye trevally.
 //
 // The sea is simulated as it runs (sim.ts): each animal decides as it goes, with real randomness, so no two minutes
@@ -108,7 +108,7 @@ function causticNet(): ImageData {
   return img
 }
 
-/** Starts Open Water in `host` (any element; the canvas fills it). Returns a function that stops it. */
+/** Starts Open Sea in `host` (any element; the canvas fills it). Returns a function that stops it. */
 export function mountOpenWater(host: HTMLElement, options: Options = {}): () => void {
   const settings: Settings = {
     theme: options.theme ?? 'dark',

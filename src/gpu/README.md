@@ -1,4 +1,4 @@
-# Open Water on WebGPU
+# Open Sea on WebGPU
 
 The page `dist/index.html`: the sea drawn by the GPU, as one file, with the panel and the **Export** button, which
 writes `open-water.html` (the player alone, the settings fixed) for anyone to put on their own site. It is a **port**

@@ -1,6 +1,6 @@
 {
   "name": "open-water",
-  "description": "Open Water: live sea animals seen from above, as a Claude theme.",
+  "description": "Open Sea: live sea animals seen from above, as a Claude theme.",
   "owner": {
     "name": "rafaelcesardev"
   },
@@ -8,7 +8,7 @@
     {
       "name": "open-water",
       "source": "./theme",
-      "description": "Open Water's sea animals swimming live behind the conversation, in the desktop app and on mobile."
+      "description": "Open Sea's sea animals swimming live behind the conversation, in the desktop app and on mobile."
     }
   ]
 }

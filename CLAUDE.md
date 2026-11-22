@@ -1,4 +1,4 @@
-# Open Water
+# Open Sea
 
 - The sea is in two versions: the canvas one (`src/`, `open-water.js`, the Claude theme) and the WebGPU one
   (`src/gpu/`, built into `dist/index.html`), a port that does not follow `src/` by itself.

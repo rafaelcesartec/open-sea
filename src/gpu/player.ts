@@ -1,4 +1,4 @@
-// Open Water on WebGPU, the player: the sea of index.ts (same settings, same look) drawn by the GPU into an element,
+// Open Sea on WebGPU, the player: the sea of index.ts (same settings, same look) drawn by the GPU into an element,
 // and nothing allocated while it runs. The sea steps 60 times a second (sea.ts), each animal is drawn by its port
 // (draw/) onto the GPU pen, and gfx.ts draws the frame. No panel here: the site (site.ts) adds it, and exports this
 // player alone with the settings chosen (play.ts).

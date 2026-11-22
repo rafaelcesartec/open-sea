@@ -50,7 +50,7 @@ async function exportFile(settings: Settings): Promise<string> {
   // `<` written as \u003c, so nothing in the settings can close the script.
   const config = JSON.stringify(fixed).replace(/</g, '\\u003c')
   const html =
-    `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Open Water</title>` +
+    `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Open Sea</title>` +
     `<style>html,body{margin:0;height:100%;overflow:hidden;background:${night}}@media (prefers-color-scheme:light){html,body{background:${day}}}#sea{position:fixed;inset:0}</style></head>` +
     `<body><div id="sea"></div><script>OPEN_WATER=${config}</script><script>${player}</script></body></html>`
   const blob = new Blob([html], { type: 'text/html' })

@@ -1,4 +1,4 @@
-# Open Water
+# Open Sea
 
 **English** · [Português](README.pt-BR.md)
 
@@ -77,13 +77,13 @@ With "reduce motion" on in the system, it shows a still scene.
 
 ## Claude theme
 
-Open Water's animals swimming live behind the conversation in the Claude desktop app and on mobile, as a mosaic. The sea is the app's background in each mode: the open ocean's blue by day, darker at night, plain, with the animals moving over it. This is a change from earlier versions, where the water was the app's own panel colour; the theme still changes none of the app's colours. In the terminal and in editors (VS Code, JetBrains) the theme draws nothing.
+Open Sea's animals swimming live behind the conversation in the Claude desktop app and on mobile, as a mosaic. The sea is the app's background in each mode: the open ocean's blue by day, darker at night, plain, with the animals moving over it. This is a change from earlier versions, where the water was the app's own panel colour; the theme still changes none of the app's colours. In the terminal and in editors (VS Code, JetBrains) the theme draws nothing.
 
 ### Install
 
 Needs Claude Code 2.1.275 or newer.
 
-In the desktop app: click **+** next to the message box, then **Plugins**, **Add marketplace**, type `rafaelcesardev/open-water`, and then **Add plugin** on Open Water.
+In the desktop app: click **+** next to the message box, then **Plugins**, **Add marketplace**, type `rafaelcesardev/open-water`, and then **Add plugin** on Open Sea.
 
 In the terminal, inside a Claude Code session:
 
