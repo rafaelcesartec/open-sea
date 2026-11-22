@@ -9,7 +9,16 @@ version does not reach it by itself. This file says how to carry one over.
 npm run build:gpu    # builds dist/index.html; warns if a canvas source changed since it was ported
 node --test src/gpu/ # the port against the canvas version it follows: must pass before a build
 npm run bench:gpu    # 60 s camera path at 2560×1440, both styles: GPU and CPU time per frame
+npm run deploy:gpu   # builds, then publishes dist/ to https://opensea.rafaelcesar.com
 ```
+
+## Publishing
+
+The page is live at **https://opensea.rafaelcesar.com**, served by Cloudflare: `wrangler.jsonc` makes `dist/` the
+static assets of a Worker named `open-sea`, with `opensea.rafaelcesar.com` as its custom domain, so Cloudflare keeps
+the DNS record and the certificate itself. `npm run deploy:gpu` builds and publishes, with the Cloudflare login of
+`wrangler` on this machine (`npx wrangler@4 login` if it has none). It does not run on a push: a GitHub Action would
+need a Cloudflare API token in the repository's secrets. `dist/` is not in git; build it before you deploy.
 
 ## What follows what
 

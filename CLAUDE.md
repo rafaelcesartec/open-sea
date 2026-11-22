@@ -7,3 +7,5 @@
   `node --test src/gpu/`, then `npm run build:gpu` with no `!!` lines. A change to how `src/index.ts` paints is ported
   by hand into `src/gpu/player.ts`.
 - Code in `src/gpu/` that runs each frame allocates nothing: the rules are in `src/gpu/README.md`.
+- The WebGPU page is live at https://opensea.rafaelcesar.com (a Cloudflare Worker, `wrangler.jsonc`). Publishing
+  is `npm run deploy:gpu`, by hand, only when asked: see "Publishing" in `src/gpu/README.md`.

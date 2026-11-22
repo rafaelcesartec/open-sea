@@ -4,7 +4,7 @@
 
 ![Animais em mosaico nadando sobre um fundo liso: lula-gigante, tartaruga, golfinho, manta e dois tubarões](assets/open-water.svg)
 
-**Veja ao vivo:** https://rafaelcesardev.github.io/open-water/ · **Tema do Claude:** [instalar](#tema-do-claude)
+**Veja ao vivo:** https://rafaelcesardev.github.io/open-water/ (canvas) · https://opensea.rafaelcesar.com (WebGPU, Chrome ou Edge) · **Tema do Claude:** [instalar](#tema-do-claude)
 
 Um oceano azul visto de cima, ao vivo, e os animais que passam por ele no tamanho real de cada um: tubarões (branco, martelo, tigre, galha-preta e tubarão-baleia), baleia-azul, baleia-jubarte, orca, golfinho, tartaruga-verde, manta, lula-gigante e um cardume de xaréus-olho-grande. Desenhados como um mosaico de ladrilhos com letras, ou com o contorno liso.
 

@@ -4,7 +4,7 @@
 
 ![Mosaic animals swimming over a plain background: a giant squid, a turtle, a dolphin, a manta and two sharks](assets/open-water.svg)
 
-**See it live:** https://rafaelcesardev.github.io/open-water/ · **Claude theme:** [install](#claude-theme)
+**See it live:** https://rafaelcesardev.github.io/open-water/ (canvas) · https://opensea.rafaelcesar.com (WebGPU, Chrome or Edge) · **Claude theme:** [install](#claude-theme)
 
 A blue ocean seen from above, live, and the animals that pass through it, each at its real size: sharks (great white, hammerhead, tiger, blacktip and whale shark), blue whale, humpback, orca, dolphin, green turtle, manta, giant squid, a school of bigeye jacks. Drawn as a mosaic of lettered tiles, or as smooth outlines.
 
