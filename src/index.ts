@@ -65,6 +65,14 @@ const MARGIN = 20
 
 /** A colour in whole numbers: what the browser would round to anyway, and far quicker for it to write and read. */
 const rgb = (r: number, g: number, b: number): string => `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`
+/** A change of theme fades the water from one to the other in this many seconds, the animals swimming on. */
+const THEME_FADE = 0.6
+const hexRGB = (h: string): [number, number, number] => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]
+/** `k` of the way from colour `a` to `b` (each [r, g, b] 0–255, and an alpha), as a CSS colour. */
+const mix = (a: readonly number[], b: readonly number[], k: number): string => {
+  const m = (i: number): number => a[i]! + (b[i]! - a[i]!) * k
+  return `rgba(${Math.round(m(0))},${Math.round(m(1))},${Math.round(m(2))},${m(3) ?? 1})`
+}
 
 /**
  * Caustic light, as the surface's ripples focus the sun or the moon on whatever lies below: a net of bright lines
@@ -166,6 +174,10 @@ export function mountOpenWater(host: HTMLElement, options: Options = {}): () => 
   const nets = new Map<CanvasRenderingContext2D, CanvasPattern>()
   /** Seconds of sea gone by, for the light at the surface: it stops when time does. */
   let clock = 0
+  /** How far the colours are from the dark theme to the light one (0 to 1, eased by `lit`), and where they go. */
+  let light = settings.theme === 'light' ? 1 : 0
+  let lightTo = light
+  const lit = (): number => light * light * (3 - 2 * light)
 
   // Set by layout(), which runs before anything reads it.
   let sea!: Sea
@@ -287,7 +299,7 @@ export function mountOpenWater(host: HTMLElement, options: Options = {}): () => 
     const g = watch!.view / 6
     const dpr = canvas.width / Math.max(1, host.clientWidth)
     ctx.setTransform(1, 0, 0, 1, 0, 0)
-    ctx.fillStyle = settings.theme === 'light' ? 'rgba(0,0,0,.14)' : 'rgba(255,255,255,.18)'
+    ctx.fillStyle = mix([255, 255, 255, 0.18], [0, 0, 0, 0.14], lit())
     const right = v.left + canvas.width / v.s
     const bottom = v.top + canvas.height / v.s
     for (let gx = Math.floor(v.left / g); gx * g < right; gx += 1) {
@@ -305,7 +317,6 @@ export function mountOpenWater(host: HTMLElement, options: Options = {}): () => 
   /** The still water, drawn once for each theme, style, tile and grid: in the mosaic, a faint grid and a few dashes. */
   function water(): void {
     const cell = settings.cell
-    const light = settings.theme === 'light'
     // As many tiles as fit the window at the open sea's scale (the sea's width may be a watched animal's world).
     cols = Math.ceil(canvas.width / (cell * scale))
     rows = Math.ceil(canvas.height / (cell * scale))
@@ -314,11 +325,17 @@ export function mountOpenWater(host: HTMLElement, options: Options = {}): () => 
     deep = new Float32Array(cols * rows)
     still.width = canvas.width
     still.height = canvas.height
+    stillWater()
+  }
+  /** Paints the still water in the theme's colours as they are now (again on each frame of a fade). */
+  function stillWater(): void {
+    const cell = settings.cell
+    const k = lit()
     const sctx = still.getContext('2d')!
-    sctx.fillStyle = settings.colour ? (light ? LIGHT : darkWater) : light ? MONO_DAY : MONO_NIGHT
+    sctx.fillStyle = mix([...hexRGB(settings.colour ? darkWater : MONO_NIGHT), 1], [...hexRGB(settings.colour ? LIGHT : MONO_DAY), 1], k)
     sctx.fillRect(0, 0, still.width, still.height)
     if (settings.style === 'mosaic' && settings.grid) {
-      sctx.strokeStyle = light ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.028)'
+      sctx.strokeStyle = mix([255, 255, 255, 0.028], [0, 0, 0, 0.05], k)
       sctx.lineWidth = 1
       sctx.beginPath()
       for (let c = 0; c <= cols; c += 1) {
@@ -336,7 +353,7 @@ export function mountOpenWater(host: HTMLElement, options: Options = {}): () => 
     // The fixed dashes only in the open sea: while watching, drifting specks show the water instead.
     if (settings.style === 'mosaic' && settings.grid && watch === undefined) {
       const rand = rng(99)
-      sctx.fillStyle = light ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.2)'
+      sctx.fillStyle = mix([255, 255, 255, 0.2], [0, 0, 0, 0.12], k)
       for (let i = 0; i < 120; i += 1) {
         const x = Math.floor(rand() * cols) * cell
         const y = Math.floor(rand() * rows) * cell
@@ -384,13 +401,13 @@ export function mountOpenWater(host: HTMLElement, options: Options = {}): () => 
     c.setTransform(1, 0, 0, 1, 0, 0)
     c.globalCompositeOperation = 'source-atop'
     c.globalAlpha = a.depth * (tile > 0 ? TINT : FADE)
-    c.fillStyle = settings.colour ? (settings.theme === 'light' ? DEEP_LIGHT : DEEP_DARK) : settings.theme === 'light' ? MONO_DEEP_LIGHT : MONO_DEEP_DARK
+    c.fillStyle = mix([...hexRGB(settings.colour ? DEEP_DARK : MONO_DEEP_DARK), 1], [...hexRGB(settings.colour ? DEEP_LIGHT : MONO_DEEP_LIGHT), 1], lit())
     c.fillRect(x0, y0, w, h)
     if (settings.surface) {
       // The caustics play over its back, fixed in the water as it swims under them, faint as it goes deeper. The
       // mosaic's tile is coarser than their lines: there they are drawn larger, so they still read.
       const coarse = tile > 0 ? 2.5 : 1
-      c.globalAlpha = (1 - a.depth) ** 1.5 * (settings.theme === 'light' ? CAUSTIC_DAY : CAUSTIC_NIGHT)
+      c.globalAlpha = (1 - a.depth) ** 1.5 * (CAUSTIC_NIGHT + (CAUSTIC_DAY - CAUSTIC_NIGHT) * lit())
       let pattern = nets.get(c)
       if (pattern === undefined) {
         const source = document.createElement('canvas')
@@ -444,7 +461,7 @@ export function mountOpenWater(host: HTMLElement, options: Options = {}): () => 
     }
     const px = lctx.getImageData(0, 0, cols, rows).data
     const size = cell * scale
-    const light = settings.theme === 'light'
+    const k = lit()
     const inset = Math.max(0.5, size * 0.06)
     ctx.font = `700 ${Math.max(4, Math.round(size * 0.72))}px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`
     ctx.textAlign = 'center'
@@ -465,9 +482,7 @@ export function mountOpenWater(host: HTMLElement, options: Options = {}): () => 
         const g = tiles.glyph[tile]!
         if (g !== '' && size >= 6) {
           // The glyph cut into the tile: a darker shade of it on the night sea, a lighter one in pale water.
-          ctx.fillStyle = light
-            ? rgb(cr + (255 - cr) * GLYPH_LIFT, cg + (255 - cg) * GLYPH_LIFT, cb + (255 - cb) * GLYPH_LIFT)
-            : rgb(cr * GLYPH_INK, cg * GLYPH_INK, cb * GLYPH_INK)
+          ctx.fillStyle = mix([cr * GLYPH_INK, cg * GLYPH_INK, cb * GLYPH_INK, 1], [cr + (255 - cr) * GLYPH_LIFT, cg + (255 - cg) * GLYPH_LIFT, cb + (255 - cb) * GLYPH_LIFT, 1], k)
           ctx.fillText(g, x + size / 2, y + size / 2 + size * 0.04)
         }
       }
@@ -483,7 +498,8 @@ export function mountOpenWater(host: HTMLElement, options: Options = {}): () => 
   let owed = 0
   const tick = (now: number): void => {
     // A step of sea for every sixtieth of a second gone by; a long pause (a hidden tab) is not caught up.
-    owed += settings.paused ? 0 : Math.min(0.25, (now - last) / 1000) * settings.speed
+    const dt = Math.min(0.25, (now - last) / 1000)
+    owed += settings.paused ? 0 : dt * settings.speed
     last = now
     let stepped = false
     while (owed >= STEP) {
@@ -505,7 +521,13 @@ export function mountOpenWater(host: HTMLElement, options: Options = {}): () => 
       clock += STEP
       stepped = true
     }
-    if (stepped) paint()
+    // A theme fading in: its colours move on every frame, the sea paused or not.
+    const fading = light !== lightTo
+    if (fading) {
+      light = light < lightTo ? Math.min(lightTo, light + dt / THEME_FADE) : Math.max(lightTo, light - dt / THEME_FADE)
+      stillWater()
+    }
+    if (stepped || fading) paint()
     frame = requestAnimationFrame(tick)
   }
   if (reduced.matches) {
@@ -534,7 +556,15 @@ export function mountOpenWater(host: HTMLElement, options: Options = {}): () => 
       }
     }
     if (patch.observe !== undefined) observe(patch.observe)
-    if (patch.theme !== undefined || patch.style !== undefined || patch.cell !== undefined || patch.grid !== undefined || patch.colour !== undefined) water()
+    // A theme alone is no new water: its colours fade there in `tick` (at once under reduced motion).
+    if (patch.theme !== undefined) {
+      lightTo = settings.theme === 'light' ? 1 : 0
+      if (reduced.matches) {
+        light = lightTo
+        stillWater()
+      }
+    }
+    if (patch.style !== undefined || patch.cell !== undefined || patch.grid !== undefined || patch.colour !== undefined) water()
     if (patch.species !== undefined || patch.atOnce !== undefined) {
       rules()
       // Nothing vanishes: a kind no longer wanted, and the oldest beyond the new count, swim off.

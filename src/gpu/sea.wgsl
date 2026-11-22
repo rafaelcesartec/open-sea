@@ -302,7 +302,8 @@ fn still(p: vec2f) -> vec4f {
       }
     }
     g = g / 16.0;
-    let ink = select(rgb * water.ink.x, rgb + (1.0 - rgb) * water.ink.y, water.ink.z > 0.5);
+    // ink.z: 0 inked (dark theme), 1 lifted (light), in between while a theme fades in.
+    let ink = mix(rgb * water.ink.x, rgb + (1.0 - rgb) * water.ink.y, water.ink.z);
     c = over(c, ink, alpha * g);
   }
   return c;

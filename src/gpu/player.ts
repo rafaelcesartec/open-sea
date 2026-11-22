@@ -18,6 +18,8 @@ const BLUR = 7
 const CAUSTIC_DAY = 0.26
 const CAUSTIC_NIGHT = 0.12
 const STEP = 1 / 60
+/** A change of theme fades the water from one to the other in this many seconds, the animals swimming on. */
+const THEME_FADE = 0.6
 const MARGIN = 20
 
 /** The panel's names of kinds (src/panel.ts, live): this port's kinds are those of reference/sim.ts. */
@@ -40,7 +42,7 @@ export type App = {
   warmed: () => number
   /** Steps the sea on without drawing. */
   warm: (steps: number) => void
-  /** Applies a change of settings (already in `settings`) as the sea runs. */
+  /** Applies a change of settings (already in `settings`) as the sea runs. A new theme fades in (THEME_FADE). */
   apply: (patch: Partial<Settings>) => void
   /** The kinds in view now. */
   inView: () => Names
@@ -96,14 +98,20 @@ function mount(host: HTMLElement, canvas: HTMLCanvasElement, gfx: Gfx, settings:
   let random: Rand = fromFn(Math.random)
   let sea!: Sea
   // Numbers that change every frame live in this object: a closure's variable would box each new value.
-  const V = { clock: 0, vl: 0, vt: 0, vs: 1, camZoom: 0, camX: 0, camY: 0, last: performance.now(), owed: 0 }
+  // light: how far the water is from the dark theme to the light one (0 to 1, eased when used); lightTo: where it goes.
+  const V = { clock: 0, vl: 0, vt: 0, vs: 1, camZoom: 0, camX: 0, camY: 0, last: performance.now(), owed: 0, light: 0, lightTo: 0 }
   let scale = 1
   let cols = 0
   let rows = 0
   let watch: { sea: Sea; kind: Kind; view: number; x: number; y: number } | undefined
   let covered = (): number => 0
-  let deep = new Float32Array(3)
-  let waterRGB: [number, number, number] = [0, 0, 0]
+  const deep = new Float32Array(3)
+  const waterRGB: [number, number, number] = [0, 0, 0]
+  // Everything that differs between the themes, dark then light, as `tint` mixes it: water, deep, then gfx.water's
+  // slots 8 to 19 (grid, dashes, specks), the glyphs' ink (lifted or inked) and the caustics. Set by `water`.
+  const ENDS = 20
+  const ends = new Float32Array(ENDS * 2)
+  let caustic = CAUSTIC_NIGHT
   // The order animals are drawn in, deepest first.
   const order = new Int32Array(16)
 
@@ -177,7 +185,6 @@ function mount(host: HTMLElement, canvas: HTMLCanvasElement, gfx: Gfx, settings:
   /** The still water and the mosaic's tiles: new targets, glyphs and dashes. Only on a change, never in a frame. */
   function water(): void {
     const cell = settings.cell
-    const light = settings.theme === 'light'
     const mosaic = settings.style === 'mosaic'
     cols = Math.ceil(canvas.width / (cell * scale))
     rows = Math.ceil(canvas.height / (cell * scale))
@@ -201,17 +208,33 @@ function mount(host: HTMLElement, canvas: HTMLCanvasElement, gfx: Gfx, settings:
       dashes[y * cols + x] = Math.min(255, dashes[y * cols + x]! + 1)
     }
     gfx.resize(canvas.width, canvas.height, mosaic, cols, rows, glyphs, dashes, table)
-    waterRGB = hex(settings.colour ? (light ? OCEAN_DAY : OCEAN_NIGHT) : light ? MONO_DAY : MONO_NIGHT)
-    deep = Float32Array.from(hex(settings.colour ? (light ? DEEP_LIGHT : DEEP_DARK) : light ? MONO_DEEP_LIGHT : MONO_DEEP_DARK))
     const w = gfx.water
     const grid = mosaic && settings.grid
+    const dashed = grid && watch === undefined
     const dpr = canvas.width / Math.max(1, host.clientWidth || canvas.width)
-    w.set([t, cols, rows, mosaic ? 1 : 0, ...waterRGB, 1])
-    w.set(light ? [0, 0, 0, grid ? 0.05 : 0] : [1, 1, 1, grid ? 0.028 : 0], 8)
-    w.set(light ? [0, 0, 0, grid && watch === undefined ? 0.12 : 0] : [1, 1, 1, grid && watch === undefined ? 0.2 : 0], 12)
-    w.set(light ? [0, 0, 0, 0.14] : [1, 1, 1, 0.18], 16)
+    const c = settings.colour
+    ends.set([...hex(c ? OCEAN_NIGHT : MONO_NIGHT), ...hex(c ? DEEP_DARK : MONO_DEEP_DARK), 1, 1, 1, grid ? 0.028 : 0, 1, 1, 1, dashed ? 0.2 : 0, 1, 1, 1, 0.18, 0, CAUSTIC_NIGHT], 0)
+    ends.set([...hex(c ? OCEAN_DAY : MONO_DAY), ...hex(c ? DEEP_LIGHT : MONO_DEEP_LIGHT), 0, 0, 0, grid ? 0.05 : 0, 0, 0, 0, dashed ? 0.12 : 0, 0, 0, 0, 0.14, 1, CAUSTIC_DAY], ENDS)
+    w.set([t, cols, rows, mosaic ? 1 : 0], 0)
+    w[7] = 1
     w.set([3 * dpr, 1.2 * dpr, t >= 6 ? 1 : 0, g], 24)
-    w.set([GLYPH_INK, GLYPH_LIFT, light ? 1 : 0, 0], 28)
+    w.set([GLYPH_INK, GLYPH_LIFT], 28)
+    tint()
+  }
+
+  /** The theme's colours, mixed V.light of the way from dark to light: in a frame of a fade, so it allocates nothing. */
+  function tint(): void {
+    const p = V.light
+    const k = p * p * (3 - 2 * p)
+    const w = gfx.water
+    for (let i = 0; i < 3; i += 1) {
+      waterRGB[i] = ends[i]! + (ends[ENDS + i]! - ends[i]!) * k
+      w[4 + i] = waterRGB[i]!
+      deep[i] = ends[3 + i]! + (ends[ENDS + 3 + i]! - ends[3 + i]!) * k
+    }
+    for (let i = 0; i < 12; i += 1) w[8 + i] = ends[6 + i]! + (ends[ENDS + 6 + i]! - ends[6 + i]!) * k
+    w[30] = ends[18]! + (ends[ENDS + 18]! - ends[18]!) * k
+    caustic = ends[19]! + (ends[ENDS + 19]! - ends[19]!) * k
   }
 
   // The view, as index.ts's `view()`: from where, at what scale.
@@ -273,8 +296,6 @@ function mount(host: HTMLElement, canvas: HTMLCanvasElement, gfx: Gfx, settings:
     gfx.lowOps.n = gfx.atlasOps.n = gfx.blurOps.n = gfx.blur2Ops.n = gfx.mainOps.n = 0
     gfx.clock = V.clock
     gfx.surface = settings.surface
-    const light = settings.theme === 'light'
-    const caustic = light ? CAUSTIC_DAY : CAUSTIC_NIGHT
     const n = s.n
     for (let i = 0; i < n; i += 1) {
       let j = i
@@ -496,6 +517,7 @@ function mount(host: HTMLElement, canvas: HTMLCanvasElement, gfx: Gfx, settings:
   }
   let warmed = 0
 
+  V.light = V.lightTo = settings.theme === 'light' ? 1 : 0
   size()
   warmJit()
   layout()
@@ -503,7 +525,8 @@ function mount(host: HTMLElement, canvas: HTMLCanvasElement, gfx: Gfx, settings:
 
   let frame = 0
   const tick = (now: number): void => {
-    V.owed += settings.paused ? 0 : Math.min(0.25, (now - V.last) / 1000) * settings.speed
+    const dt = Math.min(0.25, (now - V.last) / 1000)
+    V.owed += settings.paused ? 0 : dt * settings.speed
     V.last = now
     // A step for every sixtieth of a second; a quarter step of slack so a frame that comes a hair early or late
     // still takes one step, and never two then none.
@@ -513,7 +536,14 @@ function mount(host: HTMLElement, canvas: HTMLCanvasElement, gfx: Gfx, settings:
       V.owed -= STEP
       stepped = true
     }
-    if (stepped) paint()
+    // A theme fading in: its colours move on every frame, the sea paused or not.
+    const fading = V.light !== V.lightTo
+    if (fading) {
+      const d = dt / THEME_FADE
+      V.light = V.light < V.lightTo ? Math.min(V.lightTo, V.light + d) : Math.max(V.lightTo, V.light - d)
+      tint()
+    }
+    if (stepped || fading) paint()
     frame = requestAnimationFrame(tick)
   }
 
@@ -523,7 +553,15 @@ function mount(host: HTMLElement, canvas: HTMLCanvasElement, gfx: Gfx, settings:
       else rezoom()
     }
     if (patch.observe !== undefined) observe(patch.observe)
-    if (patch.theme !== undefined || patch.style !== undefined || patch.cell !== undefined || patch.grid !== undefined || patch.colour !== undefined) water()
+    // A theme alone is no new water: its colours fade there in `tick` (at once with nothing running, or reduced motion).
+    if (patch.theme !== undefined) {
+      V.lightTo = settings.theme === 'light' ? 1 : 0
+      if (!live || frame === 0 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        V.light = V.lightTo
+        tint()
+      }
+    }
+    if (patch.style !== undefined || patch.cell !== undefined || patch.grid !== undefined || patch.colour !== undefined) water()
     if (patch.species !== undefined || patch.atOnce !== undefined) {
       rules()
       // Nothing vanishes: a kind no longer wanted, and the oldest beyond the new count, swim off.

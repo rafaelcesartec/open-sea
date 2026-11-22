@@ -2464,6 +2464,12 @@ var SAVED = "open-water:settings";
 var STEP3 = 1 / 60;
 var MARGIN = 20;
 var rgb = (r, g, b) => `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
+var THEME_FADE = 0.6;
+var hexRGB = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+var mix = (a, b, k) => {
+  const m = (i) => a[i] + (b[i] - a[i]) * k;
+  return `rgba(${Math.round(m(0))},${Math.round(m(1))},${Math.round(m(2))},${m(3) ?? 1})`;
+};
 function causticNet() {
   const n = 128;
   const rand = rng(5);
@@ -2543,6 +2549,9 @@ function mountOpenWater(host, options = {}) {
   const net = causticNet();
   const nets = /* @__PURE__ */ new Map();
   let clock = 0;
+  let light = settings.theme === "light" ? 1 : 0;
+  let lightTo = light;
+  const lit = () => light * light * (3 - 2 * light);
   let sea;
   let scale = 1;
   let cols = 0;
@@ -2623,7 +2632,7 @@ function mountOpenWater(host, options = {}) {
     const g = watch.view / 6;
     const dpr = canvas.width / Math.max(1, host.clientWidth);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = settings.theme === "light" ? "rgba(0,0,0,.14)" : "rgba(255,255,255,.18)";
+    ctx.fillStyle = mix([255, 255, 255, 0.18], [0, 0, 0, 0.14], lit());
     const right = v.left + canvas.width / v.s;
     const bottom = v.top + canvas.height / v.s;
     for (let gx = Math.floor(v.left / g); gx * g < right; gx += 1) {
@@ -2639,7 +2648,6 @@ function mountOpenWater(host, options = {}) {
   }
   function water() {
     const cell = settings.cell;
-    const light = settings.theme === "light";
     cols = Math.ceil(canvas.width / (cell * scale));
     rows = Math.ceil(canvas.height / (cell * scale));
     low.width = cols;
@@ -2647,11 +2655,16 @@ function mountOpenWater(host, options = {}) {
     deep = new Float32Array(cols * rows);
     still.width = canvas.width;
     still.height = canvas.height;
+    stillWater();
+  }
+  function stillWater() {
+    const cell = settings.cell;
+    const k = lit();
     const sctx = still.getContext("2d");
-    sctx.fillStyle = settings.colour ? light ? LIGHT : darkWater : light ? MONO_DAY : MONO_NIGHT;
+    sctx.fillStyle = mix([...hexRGB(settings.colour ? darkWater : MONO_NIGHT), 1], [...hexRGB(settings.colour ? LIGHT : MONO_DAY), 1], k);
     sctx.fillRect(0, 0, still.width, still.height);
     if (settings.style === "mosaic" && settings.grid) {
-      sctx.strokeStyle = light ? "rgba(0,0,0,.05)" : "rgba(255,255,255,.028)";
+      sctx.strokeStyle = mix([255, 255, 255, 0.028], [0, 0, 0, 0.05], k);
       sctx.lineWidth = 1;
       sctx.beginPath();
       for (let c = 0; c <= cols; c += 1) {
@@ -2668,7 +2681,7 @@ function mountOpenWater(host, options = {}) {
     }
     if (settings.style === "mosaic" && settings.grid && watch === void 0) {
       const rand = rng(99);
-      sctx.fillStyle = light ? "rgba(0,0,0,.12)" : "rgba(255,255,255,.2)";
+      sctx.fillStyle = mix([255, 255, 255, 0.2], [0, 0, 0, 0.12], k);
       for (let i = 0; i < 120; i += 1) {
         const x = Math.floor(rand() * cols) * cell;
         const y = Math.floor(rand() * rows) * cell;
@@ -2708,11 +2721,11 @@ function mountOpenWater(host, options = {}) {
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.globalCompositeOperation = "source-atop";
     c.globalAlpha = a.depth * (tile > 0 ? TINT : FADE);
-    c.fillStyle = settings.colour ? settings.theme === "light" ? DEEP_LIGHT : DEEP_DARK : settings.theme === "light" ? MONO_DEEP_LIGHT : MONO_DEEP_DARK;
+    c.fillStyle = mix([...hexRGB(settings.colour ? DEEP_DARK : MONO_DEEP_DARK), 1], [...hexRGB(settings.colour ? DEEP_LIGHT : MONO_DEEP_LIGHT), 1], lit());
     c.fillRect(x0, y0, w, h);
     if (settings.surface) {
       const coarse = tile > 0 ? 2.5 : 1;
-      c.globalAlpha = (1 - a.depth) ** 1.5 * (settings.theme === "light" ? CAUSTIC_DAY : CAUSTIC_NIGHT);
+      c.globalAlpha = (1 - a.depth) ** 1.5 * (CAUSTIC_NIGHT + (CAUSTIC_DAY - CAUSTIC_NIGHT) * lit());
       let pattern = nets.get(c);
       if (pattern === void 0) {
         const source = document.createElement("canvas");
@@ -2762,7 +2775,7 @@ function mountOpenWater(host, options = {}) {
     }
     const px = lctx.getImageData(0, 0, cols, rows).data;
     const size = cell * scale;
-    const light = settings.theme === "light";
+    const k = lit();
     const inset = Math.max(0.5, size * 0.06);
     ctx.font = `700 ${Math.max(4, Math.round(size * 0.72))}px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`;
     ctx.textAlign = "center";
@@ -2781,7 +2794,7 @@ function mountOpenWater(host, options = {}) {
         ctx.fillRect(x + inset, y + inset, size - 2 * inset, size - 2 * inset);
         const g = tiles.glyph[tile];
         if (g !== "" && size >= 6) {
-          ctx.fillStyle = light ? rgb(cr + (255 - cr) * GLYPH_LIFT, cg + (255 - cg) * GLYPH_LIFT, cb + (255 - cb) * GLYPH_LIFT) : rgb(cr * GLYPH_INK, cg * GLYPH_INK, cb * GLYPH_INK);
+          ctx.fillStyle = mix([cr * GLYPH_INK, cg * GLYPH_INK, cb * GLYPH_INK, 1], [cr + (255 - cr) * GLYPH_LIFT, cg + (255 - cg) * GLYPH_LIFT, cb + (255 - cb) * GLYPH_LIFT, 1], k);
           ctx.fillText(g, x + size / 2, y + size / 2 + size * 0.04);
         }
       }
@@ -2794,7 +2807,8 @@ function mountOpenWater(host, options = {}) {
   let last = performance.now();
   let owed = 0;
   const tick = (now) => {
-    owed += settings.paused ? 0 : Math.min(0.25, (now - last) / 1e3) * settings.speed;
+    const dt = Math.min(0.25, (now - last) / 1e3);
+    owed += settings.paused ? 0 : dt * settings.speed;
     last = now;
     let stepped = false;
     while (owed >= STEP3) {
@@ -2814,7 +2828,12 @@ function mountOpenWater(host, options = {}) {
       clock += STEP3;
       stepped = true;
     }
-    if (stepped) paint();
+    const fading = light !== lightTo;
+    if (fading) {
+      light = light < lightTo ? Math.min(lightTo, light + dt / THEME_FADE) : Math.max(lightTo, light - dt / THEME_FADE);
+      stillWater();
+    }
+    if (stepped || fading) paint();
     frame = requestAnimationFrame(tick);
   };
   if (reduced.matches) {
@@ -2838,7 +2857,14 @@ function mountOpenWater(host, options = {}) {
       }
     }
     if (patch.observe !== void 0) observe(patch.observe);
-    if (patch.theme !== void 0 || patch.style !== void 0 || patch.cell !== void 0 || patch.grid !== void 0 || patch.colour !== void 0) water();
+    if (patch.theme !== void 0) {
+      lightTo = settings.theme === "light" ? 1 : 0;
+      if (reduced.matches) {
+        light = lightTo;
+        stillWater();
+      }
+    }
+    if (patch.style !== void 0 || patch.cell !== void 0 || patch.grid !== void 0 || patch.colour !== void 0) water();
     if (patch.species !== void 0 || patch.atOnce !== void 0) {
       rules();
       const oldest = [...sea.animals].sort((a, b) => b.age - a.age);
